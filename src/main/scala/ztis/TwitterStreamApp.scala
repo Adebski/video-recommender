@@ -13,14 +13,15 @@ object TwitterStreamApp extends App with StrictLogging {
     val ssc = new StreamingContext(Spark.conf, Seconds(1))
     val tweets = TwitterUtils.createStream(ssc, None, List("t co"))
 
-    tweets.foreachRDD(_.foreach(printTweet))
+    tweets.foreachRDD(_.foreach(printTweetAndPushToKafka))
 
     ssc.start()
     ssc.awaitTerminationOrTimeout(5.seconds.toMillis)
     ssc.stop()
 
-    def printTweet(status: Status): Unit = {
+    def printTweetAndPushToKafka(status: Status): Unit = {
       logger.info(status.toString)
+      Kafka.publish("twitter", status)
     }
   } catch {
     case e: Exception => logger.error("Error during twitter streaming", e)

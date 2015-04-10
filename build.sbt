@@ -32,4 +32,8 @@ libraryDependencies += "org.slf4j" % "log4j-over-slf4j" % "1.7.12"
 
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
 
+libraryDependencies += "com.typesafe" % "config" % "1.2.1"
+
+libraryDependencies += "org.apache.kafka" %% "kafka" % "0.8.2.1" exclude("javax.jms", "jms") exclude("com.sun.jdmk", "jmxtools") exclude("com.sun.jmx", "jmxri") exclude("org.slf4j", "slf4j-simple") exclude("org.slf4j", "slf4j-log4j12")
+
 net.virtualvoid.sbt.graph.Plugin.graphSettings
