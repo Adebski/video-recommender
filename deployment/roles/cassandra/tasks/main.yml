@@ -1,0 +1,35 @@
+---
+- name: Add DataStax repository key
+  apt_key: url=http://debian.datastax.com/debian/repo_key state=present
+  sudo: yes
+
+- name: Add DataStax repository
+  apt_repository: repo='deb http://debian.datastax.com/community stable main' state=present
+  sudo: yes
+
+- name: Update package list
+  apt: update_cache=yes
+  sudo: yes
+
+- name: Install DataStax community version of Apache Cassandra and DataStax OpsCenter
+  apt: name={{ item }} state=present
+  with_items:
+    - dsc21
+    - opscenter
+  sudo: yes
+
+- name: Install DataStax agent for monitoring
+  apt: name=datastax-agent
+  sudo: yes
+
+- name: Copy DataStax agent configuration
+  template: src=address.yaml dest=/var/lib/datastax-agent/conf/
+  sudo: yes
+
+- name: override cassandra.yaml file
+  template: src=cassandra.yaml dest=/etc/cassandra/
+  sudo: yes
+
+- name: Restart cassandra
+  service: name=cassandra state=restarted
+  sudo: yes

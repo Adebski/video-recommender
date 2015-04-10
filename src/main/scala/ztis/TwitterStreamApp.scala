@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 object TwitterStreamApp extends App with StrictLogging {
   try {
     val ssc = new StreamingContext(Spark.conf, Seconds(1))
-    val tweets = TwitterUtils.createStream(ssc, None)
+    val tweets = TwitterUtils.createStream(ssc, None, List("t co"))
 
     tweets.foreachRDD(_.foreach(printTweet))
 

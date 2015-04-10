@@ -1,0 +1,11 @@
+- name: Stop Kafka
+  command: supervisorctl stop kafka-0.8.2
+  sudo: yes
+
+- name: Stop Zookeeper
+  command: supervisorctl stop zookeeper-0.8.2
+  sudo: yes
+
+- name: Clean old data
+  shell: rm -rf /var/lib/kafka-0.8.2/data/zookeeper/* /var/lib/kafka-0.8.2/data/kafka/*
+  sudo: yes

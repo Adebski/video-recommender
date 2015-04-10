@@ -1,0 +1,12 @@
+---
+- vars:
+    user: ubuntu
+    hosts: kafka-cassandra
+    remove_data: False
+  hosts: "{{ hosts }}" 
+  user: "{{ user }}"
+  tasks:
+    - include: tasks/kafka-stop.yml
+    - include: tasks/kafka-remove-data.yml
+      when: remove_data
+    - include: tasks/kafka-start.yml
