@@ -7,10 +7,11 @@
   when: kafka_directory.stat.exists
 
 - name: Download Kafka
-  get_url: url="http://ftp.ps.pl/pub/apache/kafka/0.8.2.1/kafka_2.10-0.8.2.1.tgz" dest="/tmp/kafka-0.8.2.tgz"
+  get_url: url="http://ftp.ps.pl/pub/apache/kafka/0.8.2.1/kafka_2.10-0.8.2.1.tgz" dest="/var/lib/kafka-0.8.2.tgz"
+  sudo: yes
 
 - name: Extract Kafka
-  command: tar -x -f /tmp/kafka-0.8.2.tgz -C /var/lib/ --skip-old-files
+  command: tar -x -f /var/lib/kafka-0.8.2.tgz -C /var/lib/ --skip-old-files
   sudo: yes
 
 - name: Rename folder
@@ -74,6 +75,11 @@
   always_run: True
   register: create_result
 
+- name: Create twitter topic
+  shell: /var/lib/kafka-0.8.2/bin/kafka-topics.sh --create --zookeeper {{ kafka_instance.zookeeper_master_ip}}:{{ kafka_instance.zookeeper_master_port}} --replication-factor 1 --partitions 1 --topic twitter
+  always_run: True
+  register: create_result
+
 - assert:
     that:
       - "'ERROR' not in create_result.stdout"
@@ -91,6 +97,10 @@
     that:
        - "'test_topic_{{ item }}' in list_result.stdout"
   with_sequence: start=0 end={{ server_num | int - 1 }}
+
+- assert:
+    that:
+       - "'twitter' in list_result.stdout"
 
 - assert:
     that:
