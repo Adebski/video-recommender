@@ -36,4 +36,6 @@ libraryDependencies += "com.typesafe" % "config" % "1.2.1"
 
 libraryDependencies += "org.apache.kafka" %% "kafka" % "0.8.2.1" exclude("javax.jms", "jms") exclude("com.sun.jdmk", "jmxtools") exclude("com.sun.jmx", "jmxri") exclude("org.slf4j", "slf4j-simple") exclude("org.slf4j", "slf4j-log4j12")
 
+libraryDependencies += "org.apache.kafka" % "kafka-clients" % "0.8.2.1"
+
 net.virtualvoid.sbt.graph.Plugin.graphSettings

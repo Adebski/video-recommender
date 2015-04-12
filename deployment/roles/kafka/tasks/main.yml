@@ -47,28 +47,9 @@
   copy: src=kafka-0.8.2-supervisord.conf dest=/etc/supervisor.d/kafka-0.8.2-supervisord.conf
   sudo: yes
 
-- name: Make sure supervisord is started
-  service: name=supervisord state=started
-  sudo: yes
-
-- name: Reload supervisord configuration
-  command: supervisorctl reread
-  sudo: yes
-
-- name: Invoke supervisord configuration
-  command: supervisorctl update
-  sudo: yes
-
-- name: Start Zookeeper
-  command: supervisorctl start zookeeper-0.8.2
-  sudo: yes
-
-- name: Start Kafka
-  command: supervisorctl start kafka-0.8.2
-  sudo: yes
-
-- name: Wait for initialization
-  pause: seconds=5
+- name: Start services
+  include: start-services.yml
+  when: kafka_directory.stat.exists
 
 - name: Create test topic
   shell: /var/lib/kafka-0.8.2/bin/kafka-topics.sh --create --zookeeper {{ kafka_instance.zookeeper_master_ip}}:{{ kafka_instance.zookeeper_master_port}} --replication-factor 1 --partitions 1 --topic test_topic_{{ kafka_instance.broker_id  }}
@@ -77,6 +58,11 @@
 
 - name: Create twitter topic
   shell: /var/lib/kafka-0.8.2/bin/kafka-topics.sh --create --zookeeper {{ kafka_instance.zookeeper_master_ip}}:{{ kafka_instance.zookeeper_master_port}} --replication-factor 1 --partitions 1 --topic twitter
+  always_run: True
+  register: create_result
+
+- name: Create twitter-users topic
+  shell: /var/lib/kafka-0.8.2/bin/kafka-topics.sh --create --zookeeper {{ kafka_instance.zookeeper_master_ip}}:{{ kafka_instance.zookeeper_master_port}} --replication-factor 1 --partitions 1 --topic twitter-users
   always_run: True
   register: create_result
 
