@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 
 import scalaj.http.HttpOptions
 
-class ProcessTweetTask(tweet: Tweet) extends Runnable with StrictLogging {
+class ProcessTweetTask(cassandraClient: CassandraClient, tweet: Tweet) extends Runnable with StrictLogging {
   
   override def run(): Unit = {
     val links = TweetURLExtractor.extractLinks(tweet)
@@ -13,6 +13,7 @@ class ProcessTweetTask(tweet: Tweet) extends Runnable with StrictLogging {
     val videoLinks = resolvedLinks.filter(link => ProcessTweetTask.AcceptedDomains.contains(link.getHost))
     if (videoLinks.nonEmpty) {
       logger.info("Extracted video links " + videoLinks + " from " + resolvedLinks)
+      resolvedLinks.foreach(persistAssoc)
     }
   }
 
@@ -21,6 +22,12 @@ class ProcessTweetTask(tweet: Tweet) extends Runnable with StrictLogging {
       .option(HttpOptions.followRedirects(true))
       .method("GET")
       .asBytes.location
+  }
+  
+  private def persistAssoc(uri: java.net.URI): Unit = {
+    val uriString = uri.toString
+    
+    cassandraClient.updateExplicitAssoc(tweet.userName(), ztis.Twitter, uriString, 2)
   }
 }
 

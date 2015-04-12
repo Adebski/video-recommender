@@ -9,10 +9,11 @@ object TwitterLinkExtractorApp extends App {
   val executor = Executors.newFixedThreadPool(config.getInt("worker-threads"))
   
   val consumer = new KafkaConsumer(config, submit)
+  val cassandraClient = new CassandraClient(config)
   
   consumer.subscribe("twitter")
   
   def submit(tweet: Tweet): Unit = {
-    executor.submit(new ProcessTweetTask(tweet))
+    executor.submit(new ProcessTweetTask(cassandraClient, tweet))
   }
 }

@@ -42,4 +42,6 @@ libraryDependencies += "com.twitter" % "twitter-text" % "1.6.1"
 
 libraryDependencies += "org.scalaj" %% "scalaj-http" % "1.1.4"
 
+libraryDependencies += "com.datastax.cassandra" % "cassandra-driver-core" % "2.1.4"
+
 net.virtualvoid.sbt.graph.Plugin.graphSettings

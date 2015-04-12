@@ -1,0 +1,10 @@
+---
+- vars:
+    user: ubuntu
+    hosts: kafka-cassandra
+  hosts: "{{ hosts }}" 
+  user: "{{ user }}"
+  tasks:
+    - include: roles/cassandra/tasks/cassandra-stop.yml
+    - include: roles/cassandra/tasks/cassandra-clean-data.yml
+    - include: roles/cassandra/tasks/cassandra-start.yml
