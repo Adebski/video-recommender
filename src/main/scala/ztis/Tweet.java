@@ -50,4 +50,27 @@ public class Tweet {
                 ", isRetweet=" + isRetweet +
                 '}';
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Tweet tweet = (Tweet) o;
+
+        if (userId != tweet.userId) return false;
+        if (isRetweet != tweet.isRetweet) return false;
+        if (!text.equals(tweet.text)) return false;
+        return userName.equals(tweet.userName);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = text.hashCode();
+        result = 31 * result + (int) (userId ^ (userId >>> 32));
+        result = 31 * result + userName.hashCode();
+        result = 31 * result + (isRetweet ? 1 : 0);
+        return result;
+    }
 }
