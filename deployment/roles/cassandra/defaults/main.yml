@@ -1,0 +1,2 @@
+cluster_name: "Test Cluster"
+seeds: "{{ cluster_host }}"

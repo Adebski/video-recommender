@@ -1,0 +1,12 @@
+---
+- name: Stop cassandra service
+  service: name=cassandra state=stopped
+  sudo: yes
+
+- name: Stop opscenterd service
+  service: name=opscenterd state=stopped
+  sudo: yes
+
+- name: Stop datastax-agent service
+  service: name=datastax-agent state=stopped
+  sudo: yes

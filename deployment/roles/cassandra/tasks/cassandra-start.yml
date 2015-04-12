@@ -1,0 +1,11 @@
+- name: Start cassandra service
+  service: name=cassandra state=started
+  sudo: yes
+
+- name: Start opscenterd service
+  service: name=opscenterd state=started
+  sudo: yes
+
+- name: Start DataStax agent service
+  service: name=datastax-agent state=started
+  sudo: yes

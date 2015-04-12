@@ -1,0 +1,113 @@
+- name: Stat kafka directory
+  stat: path=/var/lib/kafka-0.8.2
+  register: kafka_directory
+
+- name: Stop services
+  include: stop-services.yml
+  when: kafka_directory.stat.exists
+
+- name: Download Kafka
+  get_url: url="http://ftp.ps.pl/pub/apache/kafka/0.8.2.1/kafka_2.10-0.8.2.1.tgz" dest="/var/lib/kafka-0.8.2.tgz"
+  sudo: yes
+
+- name: Extract Kafka
+  command: tar -x -f /var/lib/kafka-0.8.2.tgz -C /var/lib/ --skip-old-files
+  sudo: yes
+
+- name: Rename folder
+  command: creates="/var/lib/kafka-0.8.2" mv /var/lib/kafka_2.10-0.8.2.1 /var/lib/kafka-0.8.2
+  sudo: yes
+
+- name: Create zookeeper workspace
+  file: dest=/var/lib/kafka-0.8.2/data/zookeeper state=directory
+  sudo: yes
+
+- name: Create Kafka workspace
+  file: dest=/var/lib/kafka-0.8.2/data/kafka state=directory
+  sudo: yes
+
+- name: Set up permissions
+  file: path=/var/lib/kafka-0.8.2 owner={{ kafka_instance.user }} group={{ kafka_instance.user }} mode=0755 recurse=yes
+  sudo: yes
+
+- name: Configure Zookeeper
+  template: src=zookeeper.properties dest=/var/lib/kafka-0.8.2/config/zookeeper.properties owner={{ kafka_instance.user }} group={{ kafka_instance.user }} mode=0644
+
+- name: Configure Kafka
+  template: src=server.properties dest=/var/lib/kafka-0.8.2/config/server.properties owner={{ kafka_instance.user }} group={{ kafka_instance.user }} mode=0644
+
+- name: Set Zookeeper myid
+  template: src=myid dest=/var/lib/kafka-0.8.2/data/zookeeper/myid owner={{ kafka_instance.user }} group={{ kafka_instance.user }} mode=0644
+
+- name: Copy zookeeper supervisord configuration
+  copy: src=zookeeper-0.8.2-supervisord.conf dest=/etc/supervisor.d/zookeeper-0.8.2-supervisord.conf
+  sudo: yes
+
+- name: Copy kafka supervisord configuration
+  copy: src=kafka-0.8.2-supervisord.conf dest=/etc/supervisor.d/kafka-0.8.2-supervisord.conf
+  sudo: yes
+
+- name: Start services
+  include: start-services.yml
+  when: kafka_directory.stat.exists
+
+- name: Create test topic
+  shell: /var/lib/kafka-0.8.2/bin/kafka-topics.sh --create --zookeeper {{ kafka_instance.zookeeper_master_ip}}:{{ kafka_instance.zookeeper_master_port}} --replication-factor 1 --partitions 1 --topic test_topic_{{ kafka_instance.broker_id  }}
+  always_run: True
+  register: create_result
+
+- name: Create twitter topic
+  shell: /var/lib/kafka-0.8.2/bin/kafka-topics.sh --create --zookeeper {{ kafka_instance.zookeeper_master_ip}}:{{ kafka_instance.zookeeper_master_port}} --replication-factor 1 --partitions 1 --topic twitter
+  always_run: True
+  register: create_result
+
+- name: Create twitter-users topic
+  shell: /var/lib/kafka-0.8.2/bin/kafka-topics.sh --create --zookeeper {{ kafka_instance.zookeeper_master_ip}}:{{ kafka_instance.zookeeper_master_port}} --replication-factor 1 --partitions 1 --topic twitter-users
+  always_run: True
+  register: create_result
+
+- assert:
+    that:
+      - "'ERROR' not in create_result.stdout"
+      - "'WARN' not in create_result.stdout" 
+
+- name: Wait for a bit
+  pause: seconds=5
+
+- name: List topics
+  shell: /var/lib/kafka-0.8.2/bin/kafka-topics.sh --list --zookeeper {{ kafka_instance.zookeeper_master_ip}}:{{ kafka_instance.zookeeper_master_port}}
+  always_run: True
+  register: list_result
+
+- assert:
+    that:
+       - "'test_topic_{{ item }}' in list_result.stdout"
+  with_sequence: start=0 end={{ server_num | int - 1 }}
+
+- assert:
+    that:
+       - "'twitter' in list_result.stdout"
+
+- assert:
+    that:
+      - "'ERROR' not in list_result.stdout"
+      - "'WARN' not in list_result.stdout" 
+
+- name: Send messages
+  shell: echo "{{ kafka_instance.broker_id }}" | /var/lib/kafka-0.8.2/bin/kafka-console-producer.sh --broker-list {{ kafka_instance.server_ip }}:9092 --topic test_topic_{{ (kafka_instance.broker_id | int + 1) % (server_num | int) }}
+  always_run: True
+  register: producer_result
+# https://issues.apache.org/jira/browse/KAFKA-1711
+- assert:
+    that:
+      - "'ERROR' not in producer_result.stdout"
+
+- name: Retrieve messages
+  shell: /var/lib/kafka-0.8.2/bin/kafka-console-consumer.sh --zookeeper {{ kafka_instance.zookeeper_master_ip}}:{{ kafka_instance.zookeeper_master_port}} --topic test_topic_{{ (kafka_instance.broker_id | int + 2) % (server_num | int) }} --from-beginning --max-messages 1
+  always_run: True
+  register: consumer_result
+
+- assert:
+    that:
+      - "'{{ (kafka_instance.broker_id | int + 1) % (server_num | int) }}' in consumer_result.stdout"
+      - "'ERROR' not in consumer_result.stdout"

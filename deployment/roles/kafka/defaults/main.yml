@@ -1,0 +1,8 @@
+server_num: "1"
+kafka_instance:
+  zookeeper_master_ip: "{{ cluster_host }}"
+  zookeeper_master_port: 2181
+  broker_id: "0"
+  zookeeper_server_id: "1"
+  server_ip: "{{ cluster_host }}"
+  user: "{{ ansible_ssh_user }}"

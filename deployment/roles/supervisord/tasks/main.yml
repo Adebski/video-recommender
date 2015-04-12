@@ -1,0 +1,41 @@
+---
+- name: Install python-setuptools and python-dev
+  apt: name={{ item }} state=latest
+  with_items:
+    - python-setuptools
+    - python-dev
+  sudo: yes
+
+- name: install pip
+  easy_install: name=pip
+  sudo: yes
+
+- name: install virtualenv
+  pip: name=virtualenv
+  sudo: yes
+
+- name: Install supervisord
+  pip: name=supervisor state=present
+  sudo: yes
+
+- name: Create /etc/supervisor.d/ directory
+  file: path=/etc/supervisor.d/ state=directory
+  sudo: yes
+
+- name: Create /var/log/supervisor/ directory
+  file: path=/var/log/supervisor state=directory
+  sudo: yes
+
+- name: Copy supervisor global configuration
+  copy: src=supervisord.conf dest=/etc/supervisord.conf
+  sudo: yes  
+
+- name: Copy supervisor service script
+  copy: src=supervisord_init dest=/etc/init.d/supervisord mode=0755
+  sudo: yes
+  register: supervisord_init
+
+- name: Invoke update-rc.d for supervisord
+  command: update-rc.d supervisord defaults
+  sudo: yes
+  when: supervisord_init.changed

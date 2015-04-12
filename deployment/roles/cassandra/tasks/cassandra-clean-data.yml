@@ -1,0 +1,12 @@
+---
+- name: Remove contents of cassandra commitlog directory
+  shell: rm -rf /var/lib/cassandra/commitlog/*
+  sudo: yes
+
+- name: Remove contents of cassandra data directory
+  shell: rm -rf /var/lib/cassandra/data/*
+  sudo: yes
+
+- name: Remove contents of cassandra saved_caches directory
+  shell: rm -rf /var/lib/cassandra/saved_caches/*
+  sudo: yes

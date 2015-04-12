@@ -1,0 +1,8 @@
+---
+- vars:
+    user: ubuntu
+    hosts: kafka-cassandra
+  hosts: "{{ hosts }}" 
+  user: "{{ user }}"
+  roles:
+    - cassandra

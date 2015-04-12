@@ -1,0 +1,1 @@
+{{ kafka_instance.zookeeper_server_id | int }}

@@ -1,0 +1,22 @@
+- name: Make sure supervisord is started
+  service: name=supervisord state=started
+  sudo: yes
+
+- name: Reload supervisord configuration
+  command: supervisorctl reread
+  sudo: yes
+
+- name: Invoke supervisord configuration
+  command: supervisorctl update
+  sudo: yes
+
+- name: Start Zookeeper
+  command: supervisorctl start zookeeper-0.8.2
+  sudo: yes
+
+- name: Start Kafka
+  command: supervisorctl start kafka-0.8.2
+  sudo: yes
+
+- name: Wait for initialization
+  pause: seconds=5
