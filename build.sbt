@@ -38,4 +38,8 @@ libraryDependencies += "org.apache.kafka" %% "kafka" % "0.8.2.1" exclude("javax.
 
 libraryDependencies += "org.apache.kafka" % "kafka-clients" % "0.8.2.1"
 
+libraryDependencies += "com.twitter" % "twitter-text" % "1.6.1"
+
+libraryDependencies += "org.scalaj" %% "scalaj-http" % "1.1.4"
+
 net.virtualvoid.sbt.graph.Plugin.graphSettings

@@ -1,9 +1,18 @@
 package ztis
 
+import java.util.concurrent.Executors
+
 import com.typesafe.config.ConfigFactory
 
 object TwitterLinkExtractorApp extends App {
-  val consumer = new KafkaConsumer(ConfigFactory.load("twitter-link-extractor"))
+  val config = ConfigFactory.load("twitter-link-extractor")
+  val executor = Executors.newFixedThreadPool(config.getInt("worker-threads"))
+  
+  val consumer = new KafkaConsumer(config, submit)
   
   consumer.subscribe("twitter")
+  
+  def submit(tweet: Tweet): Unit = {
+    executor.submit(new ProcessTweetTask(tweet))
+  }
 }

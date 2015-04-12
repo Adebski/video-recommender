@@ -4,7 +4,7 @@ import com.typesafe.config.Config
 import kafka.consumer.{Consumer, Whitelist}
 import kafka.serializer.DefaultDecoder
 
-class KafkaConsumer(config: Config) extends KafkaComponent {
+class KafkaConsumer(config: Config, onMessage: Tweet => Unit) extends KafkaComponent {
 
   private val consumer = Consumer.create(consumerConfig(config))
 
@@ -15,7 +15,8 @@ class KafkaConsumer(config: Config) extends KafkaComponent {
     for (messageAndTopic <- stream) {
       val tweet = kryo.fromBytes(messageAndTopic.message(), classOf[Tweet])
 
-      logger.info(s"tweet: $tweet read from Kafka")
+      logger.debug(s"tweet: $tweet read from Kafka")
+      onMessage.apply(tweet)
     }
   }
   
