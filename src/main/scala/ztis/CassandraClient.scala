@@ -5,6 +5,7 @@ import java.net.{InetSocketAddress, InetAddress}
 import com.datastax.driver.core.Cluster
 import com.datastax.driver.core.policies.RoundRobinPolicy
 import com.typesafe.config.Config
+import ztis.twitter.UserOrigin
 
 import scala.collection.JavaConverters._
 

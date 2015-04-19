@@ -3,6 +3,7 @@ package ztis
 import com.typesafe.config.Config
 import kafka.consumer.{Consumer, Whitelist}
 import kafka.serializer.DefaultDecoder
+import ztis.twitter.Tweet
 
 class KafkaConsumer(config: Config, onMessage: Tweet => Unit) extends KafkaComponent {
 

@@ -7,6 +7,7 @@ import com.twitter.chill.{KryoInstantiator, KryoPool}
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import kafka.consumer.ConsumerConfig
+import ztis.twitter.TweetKryoRegistrar
 
 import scala.collection.JavaConverters._
 

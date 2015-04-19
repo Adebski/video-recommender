@@ -1,4 +1,4 @@
-package ztis
+package ztis.twitter
 
 sealed trait UserOrigin {
   def name: String

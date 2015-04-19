@@ -1,9 +1,10 @@
-package ztis
+package ztis.twitter
 
 import com.twitter.Extractor
 
-import scala.collection.JavaConverters._
-
+/**
+ * Created by adebski on 19.04.15.
+ */
 object TweetURLExtractor {
   private val extractor = new Extractor
   

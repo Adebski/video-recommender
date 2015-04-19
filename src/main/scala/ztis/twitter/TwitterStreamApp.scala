@@ -1,12 +1,14 @@
-package ztis
+package ztis.twitter
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.twitter.TwitterUtils
 import twitter4j.Status
+import ztis.Spark
 
-import scala.concurrent.duration._
-
+/**
+ * Created by adebski on 19.04.15.
+ */
 object TwitterStreamApp extends App with StrictLogging {
   try {
     val ssc = Spark.localStreamingContext()

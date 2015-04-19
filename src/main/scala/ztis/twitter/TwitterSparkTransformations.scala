@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.dstream.DStream
 import twitter4j.Status
-import ztis.{KafkaTwitterStreamProducer, Tweet}
+import ztis.Tweet
 
 object TwitterSparkTransformations extends StrictLogging {
   def pushToKafka(tweets: RDD[Status]): Unit = {

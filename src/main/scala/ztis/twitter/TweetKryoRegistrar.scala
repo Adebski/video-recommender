@@ -1,4 +1,4 @@
-package ztis
+package ztis.twitter
 
 import com.esotericsoftware.kryo.Kryo
 import com.twitter.chill.IKryoRegistrar

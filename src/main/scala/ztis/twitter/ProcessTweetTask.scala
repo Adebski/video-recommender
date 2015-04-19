@@ -1,6 +1,8 @@
-package ztis
+package ztis.twitter
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import ztis.CassandraClient
+import ztis.twitter.Twitter
 
 import scalaj.http.HttpOptions
 
@@ -27,7 +29,7 @@ class ProcessTweetTask(cassandraClient: CassandraClient, tweet: Tweet) extends R
   private def persistAssoc(uri: java.net.URI): Unit = {
     val uriString = uri.toString
     
-    cassandraClient.updateExplicitAssoc(tweet.userName(), ztis.Twitter, uriString, 2)
+    cassandraClient.updateExplicitAssoc(tweet.userName(), Twitter, uriString, 2)
   }
 }
 
