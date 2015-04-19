@@ -2,7 +2,6 @@ package ztis.twitter
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import ztis.CassandraClient
-import ztis.twitter.Twitter
 
 import scalaj.http.HttpOptions
 
