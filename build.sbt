@@ -44,6 +44,8 @@ libraryDependencies += "org.scalaj" %% "scalaj-http" % "1.1.4"
 
 libraryDependencies += "com.datastax.cassandra" % "cassandra-driver-core" % "2.1.4"
 
+libraryDependencies += "com.fasterxml.jackson.core" % "jackson-core" % "2.5.2"
+
 parallelExecution in Test := false
 
 net.virtualvoid.sbt.graph.Plugin.graphSettings
