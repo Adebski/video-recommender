@@ -2,14 +2,14 @@ package ztis
 
 import java.net.InetSocketAddress
 
-import com.datastax.driver.core.Cluster
+import com.datastax.driver.core.{ResultSet, Cluster}
 import com.datastax.driver.core.policies.RoundRobinPolicy
 import com.typesafe.config.Config
-import ztis.twitter.UserOrigin
+import com.typesafe.scalalogging.slf4j.StrictLogging
 
 import scala.collection.JavaConverters._
 
-class CassandraClient(config: Config) {
+class CassandraClient(config: Config) extends StrictLogging {
 
   private val keyspace = config.getString("cassandra.keyspace")
 
@@ -38,6 +38,15 @@ class CassandraClient(config: Config) {
     val statement = preparedInsertToExplicit.bind(user, origin.name, link, java.lang.Integer.valueOf(rating))
     session.execute(statement)
   }
+  
+  def clean(): Unit = {
+    logger.info(s"Dropping keyspace $keyspace")
+    session.execute(CassandraClient.dropKeyspaceQuery(keyspace))  
+  }
+  
+  def getAllExplicitAssociationRows(): ResultSet = {
+    session.execute(CassandraClient.selectAll(keyspace, explicitAssocTableName))
+  }
 }
 
 object CassandraClient {
@@ -47,6 +56,10 @@ object CassandraClient {
        |CREATE KEYSPACE IF NOT EXISTS $keyspace WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1}
     """.stripMargin
 
+  def dropKeyspaceQuery(keyspace: String): String = {
+    s"DROP KEYSPACE $keyspace"
+  }
+  
   def createExplicitTableQuery(keyspace: String, tableName: String): String =
     s"""
        |CREATE TABLE IF NOT EXISTS $keyspace.$tableName (
@@ -62,4 +75,8 @@ object CassandraClient {
     s"""
        |INSERT INTO $keyspace.$tableName (user_id, user_origin, link, rating) VALUES (?, ?, ?, ?)
      """.stripMargin
+  
+  def selectAll(keysapce: String, tableName: String): String = {
+    s"SELECT * FROM $keysapce.$tableName"
+  }
 }
