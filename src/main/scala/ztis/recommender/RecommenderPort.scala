@@ -8,11 +8,21 @@ import MediaTypes._
 class RecommenderPortActor extends Actor with RecommenderPort {
   def actorRefFactory = context
   def receive = runRoute(myRoute)
+
+  override val recommenderService: RecommenderService = new RecommenderService
 }
 
 
 
 trait RecommenderPort extends HttpService {
+  val recommenderService: RecommenderService
+
+  private def toXml(video: Video) = {
+    <li>
+      <a href={ "http://" + video.url }>{video.url}</a>
+    </li>
+  }
+
   val myRoute =
     path("") {
       get {
@@ -39,11 +49,25 @@ trait RecommenderPort extends HttpService {
     } ~ path("recommend") {
       get {
         parameters('twitterId.as[String], 'wykopId.as[String]).as(RecommendRequest) { request =>
+          val recommendations = recommenderService.recommend(request)
+
           respondWithMediaType(`text/html`) {
             complete {
               <html>
                 <body>
-                  Twitter: {request.twitterId}, Wykop: {request.wykopId}
+                  <h1>User</h1>
+                  <div>
+                    Twitter: {request.twitterId}, Wykop: {request.wykopId}
+                  </div>
+                  <h1>Recommendations:</h1>
+                  <div>
+                    <ul>
+                      {
+                        for { recommendation <- recommendations }
+                          yield toXml(recommendation)
+                      }
+                    </ul>
+                  </div>
                 </body>
               </html>
             }
