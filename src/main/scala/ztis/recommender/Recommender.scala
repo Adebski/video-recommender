@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 object Recommender extends App with StrictLogging {
   val config = ConfigFactory.load("recommender")
 
-  implicit val system = ActorSystem("on-spray-can")
+  implicit val system = ActorSystem("on-spray-can", config)
 
   val service = system.actorOf(Props[MyServiceActor], "demo-service")
 
