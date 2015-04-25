@@ -5,12 +5,12 @@ import spray.routing._
 import spray.http._
 import MediaTypes._
 
-class MyServiceActor extends Actor with MyService {
+class RecommenderServiceActor extends Actor with RecommenderService {
   def actorRefFactory = context
   def receive = runRoute(myRoute)
 }
 
-trait MyService extends HttpService {
+trait RecommenderService extends HttpService {
   val myRoute =
     path("") {
       get {
