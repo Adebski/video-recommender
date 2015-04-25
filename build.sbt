@@ -46,6 +46,25 @@ libraryDependencies += "com.datastax.cassandra" % "cassandra-driver-core" % "2.1
 
 libraryDependencies += "com.fasterxml.jackson.core" % "jackson-core" % "2.5.2"
 
+libraryDependencies ++= {
+  val sprayVersion = "1.3.3"
+  Seq(
+    "io.spray"            %%  "spray-can"     % sprayVersion,
+    "io.spray"            %%  "spray-routing" % sprayVersion,
+    "io.spray"            %%  "spray-testkit" % sprayVersion  % "test"
+  )
+}
+
+libraryDependencies ++= {
+  val akkaVersion = "2.3.9"
+  Seq(
+    "com.typesafe.akka"   %%  "akka-actor"    % akkaVersion,
+    "com.typesafe.akka"   %%  "akka-testkit"  % akkaVersion   % "test"
+  )
+}
+
 parallelExecution in Test := false
 
 net.virtualvoid.sbt.graph.Plugin.graphSettings
+
+Revolver.settings
