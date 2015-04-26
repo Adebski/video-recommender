@@ -1,33 +1,46 @@
 package ztis.testdata
 
+import java.io.File
+import java.net.URL
+
+import com.datastax.spark.connector._
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.spark.{SparkConf, SparkContext}
-import ztis.{UserOrigin, ExplicitAssociationEntry}
+import ztis.CassandraClient
 
-import sys.process._
-import java.net.URL
-import java.io.File
+import scala.collection.JavaConverters._
+import scala.sys.process._
 
 object MovieLensDataLoader extends App with StrictLogging {
+
   try {
 
     val config = ConfigFactory.load("testdata")
+    bootstrapCassandra(config)
     // downloadDataset(config)
-    val spark = setupSpark()
-    putDataToDatastore(spark)
+    val spark = setupSpark(config)
+    putDataToDatastore(spark, config)
     spark.stop()
 
   } catch {
     case e: Exception => logger.error("Error during loading test data", e)
   }
 
-  private def putDataToDatastore(spark: SparkContext): Unit = {
+  private def bootstrapCassandra(config: Config) = {
+    val cassandraClient = new CassandraClient(config)
+  }
+
+  private def putDataToDatastore(spark: SparkContext, config: Config): Unit = {
+    val keyspace = config.getString("cassandra.keyspace")
+    val explicitAssocTableName = config.getString("cassandra.explicit-association-table-name")
+
     val ratingFile = spark.textFile("ml-1m/ratings.dat")
     val ratings = ratingFile.map(toAssociationEntry)
-    val onlyPositiveRatings = ratings.filter(_.rating > 0)
+    val onlyPositiveRatings = ratings.filter(_._4 > 0)
 
-    logger.info("Count: " + onlyPositiveRatings.count())
+    onlyPositiveRatings.saveToCassandra(keyspace, explicitAssocTableName.toLowerCase,
+                                        SomeColumns("user_id", "user_origin", "link", "rating"))
   }
 
   private def toAssociationEntry(line: String) = {
@@ -38,20 +51,19 @@ object MovieLensDataLoader extends App with StrictLogging {
       case _ => 0
     }
 
-    ExplicitAssociationEntry(
-      userName = fields(0),
-      origin = UserOrigin.Twitter,
-      link = fields(1),
-      rating = rating01)
+    (fields(0), "movielens", fields(1), rating01)
   }
 
-  private def setupSpark(): SparkContext = {
-    val conf = new SparkConf()
+  private def setupSpark(config: Config): SparkContext = {
+    val cassandraHost = config.getStringList("cassandra.contact-points").asScala.iterator.next().split(":")(0)
+
+    val sparkConfig = new SparkConf()
       .setMaster(s"local[2]")
       .setAppName("MovieLensLoader")
       .set("spark.executor.memory", "8g")
+      .set("spark.cassandra.connection.host", cassandraHost)
 
-    new SparkContext(conf)
+    new SparkContext(sparkConfig)
   }
 
   private def downloadDataset(config: Config): Unit = {
