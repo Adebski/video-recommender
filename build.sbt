@@ -14,11 +14,13 @@ val sparkExclusionRules = List(
   ExclusionRule(organization = "org.slf4j"))
 
 libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core"              % Versions.spark,
-  "org.apache.spark" %% "spark-streaming"         % Versions.spark,
-  "org.apache.spark" %% "spark-streaming-twitter" % Versions.spark,
-  "org.apache.spark" %% "spark-mllib"             % Versions.spark
+  "org.apache.spark" %% "spark-core"                % Versions.spark,
+  "org.apache.spark" %% "spark-streaming"           % Versions.spark,
+  "org.apache.spark" %% "spark-streaming-twitter"   % Versions.spark,
+  "org.apache.spark" %% "spark-mllib"               % Versions.spark
 ).map(_.excludeAll(sparkExclusionRules:_*))
+
+libraryDependencies += "com.datastax.spark" %% "spark-cassandra-connector" % "1.2.0-rc3"
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3"
 
