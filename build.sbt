@@ -47,19 +47,17 @@ libraryDependencies += "com.datastax.cassandra" % "cassandra-driver-core" % "2.1
 libraryDependencies += "com.fasterxml.jackson.core" % "jackson-core" % "2.5.2"
 
 libraryDependencies ++= {
-  val sprayVersion = "1.3.3"
   Seq(
-    "io.spray"            %%  "spray-can"     % sprayVersion,
-    "io.spray"            %%  "spray-routing" % sprayVersion,
-    "io.spray"            %%  "spray-testkit" % sprayVersion  % "test"
+    "io.spray"            %%  "spray-can"     % Versions.spray,
+    "io.spray"            %%  "spray-routing" % Versions.spray,
+    "io.spray"            %%  "spray-testkit" % Versions.spray  % "test"
   )
 }
 
 libraryDependencies ++= {
-  val akkaVersion = "2.3.9"
   Seq(
-    "com.typesafe.akka"   %%  "akka-actor"    % akkaVersion,
-    "com.typesafe.akka"   %%  "akka-testkit"  % akkaVersion   % "test"
+    "com.typesafe.akka"   %%  "akka-actor"    % Versions.akka,
+    "com.typesafe.akka"   %%  "akka-testkit"  % Versions.akka   % "test"
   )
 }
 
