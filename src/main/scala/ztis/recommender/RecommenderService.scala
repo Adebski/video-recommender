@@ -98,7 +98,7 @@ class RecommenderService extends StrictLogging {
 
     val sparkConfig = new SparkConf()
       .setMaster(s"local[2]")
-      .setAppName("ModelBuilder")
+      .setAppName("RecommenderService")
       .set("spark.executor.memory", "8g")
       .set("spark.cassandra.connection.host", cassandraHost)
 
