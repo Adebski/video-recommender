@@ -12,7 +12,7 @@ import org.apache.spark.SparkContext._
 import scala.collection.JavaConverters._
 
 object ModelBuilder extends App with StrictLogging {
-  val config = ConfigFactory.load("testdata")
+  val config = ConfigFactory.load("model")
   val sparkConfig = setupSpark(config)
   val spark = new SparkContext(sparkConfig)
 
@@ -43,8 +43,8 @@ object ModelBuilder extends App with StrictLogging {
 
   private def persistInDatabase(model: MatrixFactorizationModel) = {
     val keyspace = config.getString("cassandra.keyspace")
-    val userFeaturesTable = "modelUserFeatures"
-    val productFeaturesTable = "modelProductFeatures"
+    val userFeaturesTable = config.getString("model.user-feature-table")
+    val productFeaturesTable = config.getString("model.product-feature-table")
 
     saveFeatureRdd(keyspace, userFeaturesTable, model.userFeatures)
     saveFeatureRdd(keyspace, productFeaturesTable, model.productFeatures)
