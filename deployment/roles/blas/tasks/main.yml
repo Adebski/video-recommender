@@ -1,0 +1,13 @@
+---
+- name: Install gfortran
+  apt: name=libgfortran3 state=latest force=true
+  sudo: yes
+
+
+- name: Install lapack
+  apt: name=liblapack3gf state=latest force=true
+  sudo: yes
+
+- name: Install blas
+  apt: name=jblas state=latest force=true
+  sudo: yes

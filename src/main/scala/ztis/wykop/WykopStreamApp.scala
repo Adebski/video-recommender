@@ -19,7 +19,8 @@ object WykopStreamApp extends App with StrictLogging {
     WykopSparkTransformations.pushToKafka(entries, topic)
 
     ssc.start()
-    ssc.awaitTerminationOrTimeout(1.minute.toMillis)
+    //ssc.awaitTerminationOrTimeout(1.minute.toMillis)
+    ssc.awaitTermination()
     ssc.stop()
 
   } catch {

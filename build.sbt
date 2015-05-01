@@ -8,23 +8,19 @@ scalaVersion := "2.10.5"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 
-libraryDependencies += "org.apache.spark" %% "spark-core" % "1.3.0" excludeAll(
+val sparkExclusionRules = List(
   ExclusionRule(name = "log4j"),
   ExclusionRule(name = "org.slf4j"),
-  ExclusionRule(organization = "org.slf4j")
-  )
+  ExclusionRule(organization = "org.slf4j"))
 
-libraryDependencies += "org.apache.spark" %% "spark-streaming" % "1.3.0" excludeAll(
-  ExclusionRule(name = "log4j"),
-  ExclusionRule(name = "org.slf4j"),
-  ExclusionRule(organization = "org.slf4j")
-  )
+libraryDependencies ++= Seq(
+  "org.apache.spark" %% "spark-core"                % Versions.spark,
+  "org.apache.spark" %% "spark-streaming"           % Versions.spark,
+  "org.apache.spark" %% "spark-streaming-twitter"   % Versions.spark,
+  "org.apache.spark" %% "spark-mllib"               % Versions.spark
+).map(_.excludeAll(sparkExclusionRules:_*))
 
-libraryDependencies += "org.apache.spark" %% "spark-streaming-twitter" % "1.3.0" excludeAll(
-  ExclusionRule(name = "log4j"),
-  ExclusionRule(name = "org.slf4j"),
-  ExclusionRule(organization = "org.slf4j")
-  )
+libraryDependencies += "com.datastax.spark" %% "spark-cassandra-connector" % "1.2.0-rc3"
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3"
 

@@ -17,7 +17,8 @@ object TwitterStreamApp extends App with StrictLogging {
     TwitterSparkTransformations.pushToKafka(tweets, topic)
 
     ssc.start()
-    ssc.awaitTerminationOrTimeout(1.minute.toMillis)
+    //ssc.awaitTerminationOrTimeout(1.minute.toMillis)
+    ssc.awaitTermination()
     ssc.stop()
 
   } catch {
