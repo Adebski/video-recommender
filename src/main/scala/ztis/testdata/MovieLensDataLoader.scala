@@ -15,10 +15,10 @@ import scala.sys.process._
 object MovieLensDataLoader extends App with StrictLogging {
 
   try {
-
     val config = ConfigFactory.load("testdata")
     bootstrapCassandra(config)
-    // downloadDataset(config)
+    downloadDataset(config)
+
     val spark = setupSpark(config)
     putDataToDatastore(spark, config)
     spark.stop()
@@ -67,14 +67,21 @@ object MovieLensDataLoader extends App with StrictLogging {
   }
 
   private def downloadDataset(config: Config): Unit = {
+    val filename = "dataset.zip"
+
+    if(new File(filename).exists()) {
+      logger.info(s"File $filename already exists. Skipping downloading...")
+      return
+    }
+
     val datasetUrl = config.getString("testdata.url")
 
     logger.info("Downloading a dataset")
-    new URL(datasetUrl) #> new File("dataset.zip") !!
+    new URL(datasetUrl) #> new File(filename) !!
 
     logger.info("Dataset downloaded")
 
-    "unzip dataset.zip" !!
+    s"unzip $filename" !!
 
     logger.info("Dataset unzipped")
   }
