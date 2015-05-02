@@ -8,6 +8,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import com.datastax.spark.connector._
 import org.apache.spark.SparkContext._
+import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 
 import scala.collection.JavaConverters._
 
@@ -39,8 +40,41 @@ object ModelBuilder extends App with StrictLogging {
 
   val model: MatrixFactorizationModel = ALS.train(training, rank, numIters, lambda)
 
-  val validationRmse = computeRmse(model, validation)
-  logger.info(s"Rmse: $validationRmse")
+//  val validationRmse = computeRmse(model, validation)
+//  logger.info(s"RMSE: $validationRmse")
+
+  // regressoinMetrics!
+
+  val userProducts = validation.map(rating => (rating.user, rating.product))
+  val scores = model.predict(userProducts)
+
+  def toDouble(boolean: Boolean) = if(boolean) 1.0 else 0.0
+  val labels = validation.map(rating => rating.copy(rating = toDouble(rating.rating >= 4)))
+
+  val keyedScores = scores.map(rating => ((rating.user, rating.product), rating.rating))
+  val keyedLabels = labels.map(rating => ((rating.user, rating.product), rating.rating))
+  val scoresAndLabels = keyedScores.join(keyedLabels).values
+  scoresAndLabels.cache()
+  val fraction = 1000.0 / scoresAndLabels.count()
+
+
+  val metrics = new BinaryClassificationMetrics(scoresAndLabels)
+  val prArea = metrics.areaUnderPR()
+  val rocArea = metrics.areaUnderROC()
+
+  metrics.pr().map {
+    case (recall, precision) => s"$recall, $precision"
+  }.sample(false, fraction).saveAsTextFile("pr.dat")
+
+  metrics.roc().map {
+    case (rate1, rate2) => s"$rate1, $rate2"
+  }.sample(false, fraction).saveAsTextFile("roc.dat")
+
+  metrics.precisionByThreshold().join(metrics.recallByThreshold()).join(metrics.fMeasureByThreshold()).map {
+    case (threshold, ((precision, recall), fMeasure)) => s"$threshold, $precision, $recall, $fMeasure"
+  }.sample(false, fraction).saveAsTextFile("thresholds.dat")
+
+  logger.info(s"area under PR: $prArea, area under ROC: $rocArea")
 
   persistInDatabase(model)
 
