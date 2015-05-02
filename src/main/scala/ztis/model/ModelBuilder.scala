@@ -25,10 +25,12 @@ object ModelBuilder extends App with StrictLogging {
     Rating(userId, link, rating.toDouble)
   })
 
-  // will change this in the next PR
-  val training = ratings
+  val Array(training, validation, test) = ratings.randomSplit(Array(0.6, 0.2, 0.2))
 
   training.cache()
+  validation.cache()
+  test.cache()
+
   logger.info(s"Count: ${training.count()}\n")
 
   val rank = 8
@@ -36,6 +38,9 @@ object ModelBuilder extends App with StrictLogging {
   val numIters = 10
 
   val model: MatrixFactorizationModel = ALS.train(training, rank, numIters, lambda)
+
+  val validationRmse = computeRmse(model, validation)
+  logger.info(s"Rmse: $validationRmse")
 
   persistInDatabase(model)
 
@@ -58,8 +63,16 @@ object ModelBuilder extends App with StrictLogging {
     rdd.map(feature => (feature._1, feature._2.toList)).saveAsCassandraTable(keyspace, tableName)
   }
 
+  private def computeRmse(model: MatrixFactorizationModel, data: RDD[Rating]) = {
+    val predictions: RDD[Rating] = model.predict(data.map(x => (x.user, x.product)))
+    val predictionsAndRatings = predictions.map(x => ((x.user, x.product), x.rating)).join(
+      data.map(x => ((x.user, x.product), x.rating))).values
+
+    math.sqrt(predictionsAndRatings.map(x => (x._1 - x._2) * (x._1 - x._2)).reduce(_ + _) / data.count())
+  }
+
   // TODO(#8): extract to CassandraClient or sth like this
-  private def associationRdd = {
+ private def associationRdd = {
     val keyspace = config.getString("cassandra.keyspace")
     val explicitAssocTableName = config.getString("cassandra.explicit-association-table-name")
 
