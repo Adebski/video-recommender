@@ -79,29 +79,40 @@ object ModelBuilder extends App with StrictLogging {
     val prArea = metrics.areaUnderPR()
     val rocArea = metrics.areaUnderROC()
 
-    metrics.pr().map {
-      case (recall, precision) => s"$recall, $precision"
-    }.sample(false, fraction).saveAsTextFile(directory + "/pr.dat")
+    shortRddToFile(directory + "/pr.dat",
+      metrics.pr().map {
+        case (recall, precision) => s"$recall, $precision"
+      }.sample(false, fraction)
+    )
+    shortRddToFile(directory + "/roc.dat",
+      metrics.roc().map {
+        case (rate1, rate2) => s"$rate1, $rate2"
+      }.sample(false, fraction)
+    )
 
-    metrics.roc().map {
-      case (rate1, rate2) => s"$rate1, $rate2"
-    }.sample(false, fraction).saveAsTextFile(directory + "/roc.dat")
-
-    metrics.precisionByThreshold().join(metrics.recallByThreshold()).join(metrics.fMeasureByThreshold()).map {
-      case (threshold, ((precision, recall), fMeasure)) => s"$threshold, $precision, $recall, $fMeasure"
-    }.sample(false, fraction).saveAsTextFile(directory + "/thresholds.dat")
+    shortRddToFile(directory + "/thresholds.dat",
+      metrics.precisionByThreshold().join(metrics.recallByThreshold()).join(metrics.fMeasureByThreshold()).map {
+        case (threshold, ((precision, recall), fMeasure)) => s"$threshold, $precision, $recall, $fMeasure"
+      }.sample(false, fraction)
+    )
 
     val report =
-      s"""
-        |RMSE: $rmse
-        |AUC PR: $prArea
-        |AUC ROC: $rocArea
-      """.stripMargin
+      s"""|
+          |RMSE: $rmse
+          |AUC PR: $prArea
+          |AUC ROC: $rocArea
+          |""".stripMargin
 
     logger.info(report)
     File(directory + "/report.txt").writeAll(report)
 
+    s"./plots.sh $directory" !!
+
     rocArea
+  }
+
+  private def shortRddToFile(filename: String, rdd: RDD[String]) = {
+    File(filename).writeAll(rdd.collect().mkString("\n"))
   }
 
   private def persistInDatabase(model: MatrixFactorizationModel) = {
