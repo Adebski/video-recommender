@@ -73,7 +73,7 @@ object ModelBuilder extends App with StrictLogging {
     scoresAndLabels.cache()
     val fraction = 1000.0 / scoresAndLabels.count()
 
-    // add naive classifier for comparsion, all scores are mean of ratings for a product
+
 
     val metrics = new BinaryClassificationMetrics(scoresAndLabels)
     val prArea = metrics.areaUnderPR()
