@@ -32,26 +32,26 @@ object MovieLensDataLoader extends App with StrictLogging {
   }
 
   private def putDataToDatastore(spark: SparkContext, config: Config): Unit = {
+    val unaryScale = config.getBoolean("testdata.unary-scale")
+
     val keyspace = config.getString("cassandra.keyspace")
     val explicitAssocTableName = config.getString("cassandra.explicit-association-table-name")
 
     val ratingFile = spark.textFile("ml-1m/ratings.dat")
-    val ratings = ratingFile.map(toAssociationEntry)
-    val onlyPositiveRatings = ratings.filter(_._4 > 0)
+    val ratings = if(unaryScale) {
+      ratingFile.map(toAssociationEntry).filter(_._4 > 3).map(_.copy(_4 = 1))
+    }
+    else {
+      ratingFile.map(toAssociationEntry)
+    }
 
-    onlyPositiveRatings.saveToCassandra(keyspace, explicitAssocTableName.toLowerCase,
-                                        SomeColumns("user_id", "user_origin", "link", "rating"))
+    ratings.saveToCassandra(keyspace, explicitAssocTableName.toLowerCase,
+                            SomeColumns("user_id", "user_origin", "link", "rating"))
   }
 
   private def toAssociationEntry(line: String) = {
     val fields = line.split("::")
-
-    val rating01 = fields(2).toInt match {
-      case x if x >= 4 => 1
-      case _ => 0
-    }
-
-    (fields(0), "movielens", fields(1), rating01)
+    (fields(0), "movielens", fields(1), fields(2).toInt)
   }
 
   private def setupSpark(config: Config): SparkContext = {
