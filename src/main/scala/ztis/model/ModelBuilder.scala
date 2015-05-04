@@ -38,35 +38,47 @@ object ModelBuilder extends App with StrictLogging {
 
   logger.info(s"Count: ${training.count()}\n")
 
-  val ranks = List(8, 12)
-  val lambdas = List(0.1, 1.0, 10.0)
-  val numIters = List(10, 20)
+  {
+    val ranks = List(8, 12, 50)
+    val lambdas = List(0.01, 0.1, 1.0)
+    val numIters = List(10, 20, 100)
 
-  val directory = s"report-${DateTime.now().toString(DateTimeFormat.forPattern("yyyy-MM-dd--HH-mm-ss"))}"
-  s"mkdir $directory" !!
+    val directory = s"report-${DateTime.now().toString(DateTimeFormat.forPattern("yyyy-MM-dd--HH-mm-ss"))}"
+    s"mkdir $directory" !!
 
-  val paramsCrossProduct = for { rank <- ranks; lambda <- lambdas; numIter <- numIters } yield (rank, lambda, numIter)
+    val paramsCrossProduct = for {rank <- ranks; lambda <- lambdas; numIter <- numIters} yield (rank, lambda, numIter)
 
-  val best = paramsCrossProduct.map {
-    case params @ (rank, lambda, numIter) => {
-      val modelDirectory = s"$directory/r$rank-l${(lambda*10).toInt}-i$numIter"
-      s"mkdir $modelDirectory" !!
+    val results = paramsCrossProduct.map {
+      case params@(rank, lambda, numIter) => {
+        val modelDirectory = s"$directory/r$rank-l${(lambda * 100).toInt}-i$numIter"
+        s"mkdir $modelDirectory" !!
 
-      val model = ALS.train(training, rank, numIter, lambda)
-      val score = evaluate(model, modelDirectory)
+        val model = ALS.train(training, rank, numIter, lambda)
+        val score = evaluate(model, modelDirectory)
 
-      (score, model, params)
-    }
-  }.sortBy(-_._1).head
+        (score, model, params)
+      }
+    }.sortBy(-_._1)
 
-  val (score, model, (rank, lambda, numIter)) = best
+    val best = results.head
+    val (score, model, (rank, lambda, numIter)) = best
 
-  // dump scores along with params
+    dumpScores(results, directory + "/scores.txt")
 
-  persistInDatabase(model)
-  logger.info(s"The best model params: rank=$rank, lambda=$lambda, numIter=$numIter. It's ROC AUC = $score")
+    persistInDatabase(model)
+    logger.info(s"The best model params: rank=$rank, lambda=$lambda, numIter=$numIter. It's ROC AUC = $score")
+  }
 
   spark.stop()
+
+  def dumpScores(scores : List[(Double, MatrixFactorizationModel, (Int, Double, Int))], filename: String) = {
+    val header = "rank, lambda, numIter, score\n"
+    val csv = scores.map {
+      case (score, _, params) => params.productIterator.toList.mkString(",") + "," + score.toString
+    }.mkString("\n")
+
+    File(filename).writeAll(header, csv)
+  }
 
   def evaluate(model: MatrixFactorizationModel, reportDirectory: String) = {
     val userProducts = validation.map(rating => (rating.user, rating.product))
