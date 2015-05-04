@@ -38,19 +38,31 @@ object ModelBuilder extends App with StrictLogging {
 
   logger.info(s"Count: ${training.count()}\n")
 
-  // TODO(#13)
-  val rank = 8
-  val lambda = 0.1
-  val numIters = 10
-
-  val model = ALS.train(training, rank, numIters, lambda)
+  val ranks = List(8, 12)
+  val lambdas = List(0.1, 1.0, 10.0)
+  val numIters = List(10, 20)
 
   val directory = s"report-${DateTime.now().toString(DateTimeFormat.forPattern("yyyy-MM-dd--HH-mm-ss"))}"
   s"mkdir $directory" !!
 
-  val score = evaluate(model, directory)
+  val paramsCrossProduct = for { rank <- ranks; lambda <- lambdas; numIter <- numIters } yield (rank, lambda, numIter)
+
+  val best = paramsCrossProduct.map {
+    case params @ (rank, lambda, numIter) => {
+      val modelDirectory = s"$directory/r$rank-l${(lambda*10).toInt}-i$numIter"
+      s"mkdir $modelDirectory" !!
+
+      val model = ALS.train(training, rank, numIter, lambda)
+      val score = evaluate(model, modelDirectory)
+
+      (score, model, params)
+    }
+  }.sortBy(_._1).head
+
+  val (score, model, (rank, lambda, numIter)) = best
 
   persistInDatabase(model)
+  logger.info(s"The best model params: rank=$rank, lambda=$lambda, numIter=$numIter. It's ROC AUC = $score")
 
   spark.stop()
 
@@ -73,24 +85,22 @@ object ModelBuilder extends App with StrictLogging {
     scoresAndLabels.cache()
     val fraction = 1000.0 / scoresAndLabels.count()
 
-
-
     val metrics = new BinaryClassificationMetrics(scoresAndLabels)
     val prArea = metrics.areaUnderPR()
     val rocArea = metrics.areaUnderROC()
 
-    shortRddToFile(directory + "/pr.dat",
+    shortRddToFile(reportDirectory + "/pr.dat",
       metrics.pr().map {
         case (recall, precision) => s"$recall, $precision"
       }.sample(false, fraction)
     )
-    shortRddToFile(directory + "/roc.dat",
+    shortRddToFile(reportDirectory + "/roc.dat",
       metrics.roc().map {
         case (rate1, rate2) => s"$rate1, $rate2"
       }.sample(false, fraction)
     )
 
-    shortRddToFile(directory + "/thresholds.dat",
+    shortRddToFile(reportDirectory + "/thresholds.dat",
       metrics.precisionByThreshold().join(metrics.recallByThreshold()).join(metrics.fMeasureByThreshold()).map {
         case (threshold, ((precision, recall), fMeasure)) => s"$threshold, $precision, $recall, $fMeasure"
       }.sample(false, fraction)
@@ -104,9 +114,9 @@ object ModelBuilder extends App with StrictLogging {
           |""".stripMargin
 
     logger.info(report)
-    File(directory + "/report.txt").writeAll(report)
+    File(reportDirectory + "/report.txt").writeAll(report)
 
-    s"./plots.sh $directory" !!
+    s"./plots.sh $reportDirectory" !!
 
     rocArea
   }
