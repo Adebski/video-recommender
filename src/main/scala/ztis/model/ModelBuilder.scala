@@ -1,7 +1,7 @@
 package ztis.model
 
 import com.datastax.spark.connector.cql.CassandraConnector
-import com.typesafe.config.{ConfigFactory, Config}
+import com.typesafe.config.{ConfigValue, ConfigFactory, Config}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.spark.mllib.recommendation.{MatrixFactorizationModel, Rating, ALS}
 import org.apache.spark.rdd.RDD
@@ -12,6 +12,7 @@ import org.apache.spark.mllib.evaluation.{RegressionMetrics, BinaryClassificatio
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 
+import scala.collection.mutable
 import scala.reflect.io.File
 import scala.sys.process._
 import scala.collection.JavaConverters._
@@ -39,9 +40,9 @@ object ModelBuilder extends App with StrictLogging {
   logger.info(s"Count: ${training.count()}\n")
 
   {
-    val ranks = List(8, 12, 50)
-    val lambdas = List(0.01, 0.1, 1.0)
-    val numIters = List(10, 20, 100)
+    val ranks = config.getIntList("model.params.ranks").asScala.toVector.map(_.toInt)
+    val lambdas = config.getDoubleList("model.params.lambdas").asScala.toVector.map(_.toDouble)
+    val numIters = config.getIntList("model.params.iterations").asScala.toVector.map(_.toInt)
 
     val directory = s"report-${DateTime.now().toString(DateTimeFormat.forPattern("yyyy-MM-dd--HH-mm-ss"))}"
     s"mkdir $directory" !!
@@ -58,7 +59,7 @@ object ModelBuilder extends App with StrictLogging {
 
         (score, model, params)
       }
-    }.sortBy(-_._1)
+    }.sortBy(-_._1).toList
 
     val best = results.head
     val (score, model, (rank, lambda, numIter)) = best
