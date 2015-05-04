@@ -57,9 +57,11 @@ object ModelBuilder extends App with StrictLogging {
 
       (score, model, params)
     }
-  }.sortBy(_._1).head
+  }.sortBy(-_._1).head
 
   val (score, model, (rank, lambda, numIter)) = best
+
+  // dump scores along with params
 
   persistInDatabase(model)
   logger.info(s"The best model params: rank=$rank, lambda=$lambda, numIter=$numIter. It's ROC AUC = $score")
