@@ -1,7 +1,7 @@
 package ztis.model
 
 import com.datastax.spark.connector.cql.CassandraConnector
-import com.typesafe.config.{ConfigFactory, Config}
+import com.typesafe.config.{ConfigValue, ConfigFactory, Config}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.spark.mllib.recommendation.{MatrixFactorizationModel, Rating, ALS}
 import org.apache.spark.rdd.RDD
@@ -12,6 +12,7 @@ import org.apache.spark.mllib.evaluation.{RegressionMetrics, BinaryClassificatio
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 
+import scala.collection.mutable
 import scala.reflect.io.File
 import scala.sys.process._
 import scala.collection.JavaConverters._
@@ -38,21 +39,47 @@ object ModelBuilder extends App with StrictLogging {
 
   logger.info(s"Count: ${training.count()}\n")
 
-  // TODO(#13)
-  val rank = 8
-  val lambda = 0.1
-  val numIters = 10
+  {
+    val ranks = config.getIntList("model.params.ranks").asScala.toVector.map(_.toInt)
+    val lambdas = config.getDoubleList("model.params.lambdas").asScala.toVector.map(_.toDouble)
+    val numIters = config.getIntList("model.params.iterations").asScala.toVector.map(_.toInt)
 
-  val model = ALS.train(training, rank, numIters, lambda)
+    val directory = s"report-${DateTime.now().toString(DateTimeFormat.forPattern("yyyy-MM-dd--HH-mm-ss"))}"
+    s"mkdir $directory" !!
 
-  val directory = s"report-${DateTime.now().toString(DateTimeFormat.forPattern("yyyy-MM-dd--HH-mm-ss"))}"
-  s"mkdir $directory" !!
+    val paramsCrossProduct = for {rank <- ranks; lambda <- lambdas; numIter <- numIters} yield (rank, lambda, numIter)
 
-  val score = evaluate(model, directory)
+    val results = paramsCrossProduct.map {
+      case params@(rank, lambda, numIter) => {
+        val modelDirectory = s"$directory/r$rank-l${(lambda * 100).toInt}-i$numIter"
+        s"mkdir $modelDirectory" !!
 
-  persistInDatabase(model)
+        val model = ALS.train(training, rank, numIter, lambda)
+        val score = evaluate(model, modelDirectory)
+
+        (score, model, params)
+      }
+    }.sortBy(-_._1).toList
+
+    val best = results.head
+    val (score, model, (rank, lambda, numIter)) = best
+
+    dumpScores(results, directory + "/scores.txt")
+
+    persistInDatabase(model)
+    logger.info(s"The best model params: rank=$rank, lambda=$lambda, numIter=$numIter. It's ROC AUC = $score")
+  }
 
   spark.stop()
+
+  def dumpScores(scores : List[(Double, MatrixFactorizationModel, (Int, Double, Int))], filename: String) = {
+    val header = "rank,lambda,numIter,score\n"
+    val csv = scores.map {
+      case (score, _, params) => params.productIterator.toList.mkString(",") + "," + score.toString
+    }.mkString("\n")
+
+    File(filename).writeAll(header, csv)
+  }
 
   def evaluate(model: MatrixFactorizationModel, reportDirectory: String) = {
     val userProducts = validation.map(rating => (rating.user, rating.product))
@@ -73,24 +100,22 @@ object ModelBuilder extends App with StrictLogging {
     scoresAndLabels.cache()
     val fraction = 1000.0 / scoresAndLabels.count()
 
-
-
     val metrics = new BinaryClassificationMetrics(scoresAndLabels)
     val prArea = metrics.areaUnderPR()
     val rocArea = metrics.areaUnderROC()
 
-    shortRddToFile(directory + "/pr.dat",
+    shortRddToFile(reportDirectory + "/pr.dat",
       metrics.pr().map {
         case (recall, precision) => s"$recall, $precision"
       }.sample(false, fraction)
     )
-    shortRddToFile(directory + "/roc.dat",
+    shortRddToFile(reportDirectory + "/roc.dat",
       metrics.roc().map {
         case (rate1, rate2) => s"$rate1, $rate2"
       }.sample(false, fraction)
     )
 
-    shortRddToFile(directory + "/thresholds.dat",
+    shortRddToFile(reportDirectory + "/thresholds.dat",
       metrics.precisionByThreshold().join(metrics.recallByThreshold()).join(metrics.fMeasureByThreshold()).map {
         case (threshold, ((precision, recall), fMeasure)) => s"$threshold, $precision, $recall, $fMeasure"
       }.sample(false, fraction)
@@ -104,9 +129,9 @@ object ModelBuilder extends App with StrictLogging {
           |""".stripMargin
 
     logger.info(report)
-    File(directory + "/report.txt").writeAll(report)
+    File(reportDirectory + "/report.txt").writeAll(report)
 
-    s"./plots.sh $directory" !!
+    s"./plots.sh $reportDirectory" !!
 
     rocArea
   }
