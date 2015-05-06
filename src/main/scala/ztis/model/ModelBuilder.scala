@@ -73,7 +73,7 @@ object ModelBuilder extends App with StrictLogging {
   spark.stop()
 
   def dumpScores(scores : List[(Double, MatrixFactorizationModel, (Int, Double, Int))], filename: String) = {
-    val header = "rank, lambda, numIter, score\n"
+    val header = "rank,lambda,numIter,score\n"
     val csv = scores.map {
       case (score, _, params) => params.productIterator.toList.mkString(",") + "," + score.toString
     }.mkString("\n")
