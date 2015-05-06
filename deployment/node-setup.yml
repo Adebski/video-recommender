@@ -1,0 +1,8 @@
+---
+- vars:
+    user: ubuntu
+    hosts: all
+  hosts: "{{ hosts }}"
+  user: "{{ user }}"
+  roles:
+    - blas

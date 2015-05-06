@@ -8,23 +8,19 @@ scalaVersion := "2.10.5"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 
-libraryDependencies += "org.apache.spark" %% "spark-core" % "1.3.0" excludeAll(
+val sparkExclusionRules = List(
   ExclusionRule(name = "log4j"),
   ExclusionRule(name = "org.slf4j"),
-  ExclusionRule(organization = "org.slf4j")
-  )
+  ExclusionRule(organization = "org.slf4j"))
 
-libraryDependencies += "org.apache.spark" %% "spark-streaming" % "1.3.0" excludeAll(
-  ExclusionRule(name = "log4j"),
-  ExclusionRule(name = "org.slf4j"),
-  ExclusionRule(organization = "org.slf4j")
-  )
+libraryDependencies ++= Seq(
+  "org.apache.spark" %% "spark-core"                % Versions.spark,
+  "org.apache.spark" %% "spark-streaming"           % Versions.spark,
+  "org.apache.spark" %% "spark-streaming-twitter"   % Versions.spark,
+  "org.apache.spark" %% "spark-mllib"               % Versions.spark
+).map(_.excludeAll(sparkExclusionRules:_*))
 
-libraryDependencies += "org.apache.spark" %% "spark-streaming-twitter" % "1.3.0" excludeAll(
-  ExclusionRule(name = "log4j"),
-  ExclusionRule(name = "org.slf4j"),
-  ExclusionRule(organization = "org.slf4j")
-  )
+libraryDependencies += "com.datastax.spark" %% "spark-cassandra-connector" % "1.2.0-rc3"
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3"
 
@@ -44,4 +40,25 @@ libraryDependencies += "org.scalaj" %% "scalaj-http" % "1.1.4"
 
 libraryDependencies += "com.datastax.cassandra" % "cassandra-driver-core" % "2.1.4"
 
+libraryDependencies += "com.fasterxml.jackson.core" % "jackson-core" % "2.5.2"
+
+libraryDependencies ++= {
+  Seq(
+    "io.spray"            %%  "spray-can"     % Versions.spray,
+    "io.spray"            %%  "spray-routing" % Versions.spray,
+    "io.spray"            %%  "spray-testkit" % Versions.spray  % "test"
+  )
+}
+
+libraryDependencies ++= {
+  Seq(
+    "com.typesafe.akka"   %%  "akka-actor"    % Versions.akka,
+    "com.typesafe.akka"   %%  "akka-testkit"  % Versions.akka   % "test"
+  )
+}
+
+parallelExecution in Test := false
+
 net.virtualvoid.sbt.graph.Plugin.graphSettings
+
+Revolver.settings

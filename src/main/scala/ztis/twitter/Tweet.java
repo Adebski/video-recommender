@@ -1,4 +1,4 @@
-package ztis;
+package ztis.twitter;
 
 import twitter4j.Status;
 

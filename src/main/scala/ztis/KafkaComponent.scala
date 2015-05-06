@@ -4,19 +4,19 @@ import java.util
 import java.util.Properties
 
 import com.twitter.chill.{KryoInstantiator, KryoPool}
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import kafka.consumer.ConsumerConfig
+import ztis.twitter.TweetKryoRegistrar
+import ztis.wykop.WykopKryoRegistrar
 
 import scala.collection.JavaConverters._
 
 
 trait KafkaComponent extends StrictLogging {
-  val config = ConfigFactory.load("kafka.conf")
+  val kryo = KryoPool.withByteArrayOutputStream(1, (new KryoInstantiator)
+    .withRegistrar(new TweetKryoRegistrar).withRegistrar(new WykopKryoRegistrar))
 
-  val kryo = KryoPool.withByteArrayOutputStream(1, (new KryoInstantiator).withRegistrar(new TweetKryoRegistrar))
-  
-  
   private def configToProperties(config: Config, extra: Map[String, String] = Map.empty): Properties = {
     val properties = new Properties()
 
