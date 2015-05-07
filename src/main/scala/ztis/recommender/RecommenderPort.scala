@@ -41,7 +41,7 @@ trait RecommenderPort extends HttpService {
       }
     } ~ path("recommend") {
       get {
-        parameters('twitterId.as[String], 'wykopId.as[String]).as(RecommendRequest) { request =>
+        parameters(('twitterId.as[String], 'wykopId.as[String])).as(RecommendRequest) { request =>
           val recommendations = recommenderService.recommend(request)
 
           respondWithMediaType(`text/html`) {

@@ -15,8 +15,8 @@ object EntryMapper {
   }
   
   private def toEntry(node: JsonNode): Entry = {
-    val author = node.get("author").getValueAsText
-    val link = node.get("source_url").getValueAsText
+    val author = node.get("author").asText()
+    val link = node.get("source_url").asText()
     
     Entry(author, link)
   }

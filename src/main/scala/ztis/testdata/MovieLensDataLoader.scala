@@ -9,6 +9,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.spark.{SparkConf, SparkContext}
 import ztis.CassandraClient
 
+import scala.language.postfixOps
 import scala.collection.JavaConverters._
 import scala.sys.process._
 

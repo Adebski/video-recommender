@@ -35,7 +35,7 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
     TwitterSparkTransformations.pushToKafka(dstream, testTopic)
 
     ssc.start()
-    ssc.awaitTerminationOrTimeout(10.seconds.toMillis)
+    ssc.awaitTermination(10.seconds.toMillis)
     
     val associations = repository.getAllAssociations()
     val expectedAssociations = Vector(ExplicitAssociationEntry(userName, UserOrigin.Twitter, youtubeLink, 2))
