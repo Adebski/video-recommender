@@ -12,6 +12,8 @@ import scala.reflect.io.File
 object Evaluations extends StrictLogging {
 
   def evaluateAndGiveAUC(predictor: Predictor, validationData: RDD[Rating], reportDirectory: String) = {
+    s"mkdir ${reportDirectory}" !!
+
     val userProducts = validationData.map(rating => (rating.user, rating.product))
     val predictions = predictor.predictMany(userProducts)
 

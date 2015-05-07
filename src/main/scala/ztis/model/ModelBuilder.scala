@@ -51,11 +51,8 @@ object ModelBuilder extends App with StrictLogging {
     val results = paramsCrossProduct.map {
       case params@(rank, lambda, numIter) => {
         val modelDirectory = s"$directory/r$rank-l${(lambda * 100).toInt}-i$numIter"
-        s"mkdir $modelDirectory" !!
-
         val model = ALS.train(training, rank, numIter, lambda)
-        val predictor = new ALSPrediction(model)
-        val score = Evaluations.evaluateAndGiveAUC(predictor, validation, modelDirectory)
+        val score = Evaluations.evaluateAndGiveAUC(new ALSPrediction(model), validation, modelDirectory)
 
         (score, model, params)
       }
@@ -66,14 +63,16 @@ object ModelBuilder extends App with StrictLogging {
 
     dumpScores(results, directory + "/scores.txt")
 
-    persistInDatabase(model)
     logger.info(s"The best model params: rank=$rank, lambda=$lambda, numIter=$numIter. It's ROC AUC = $score")
 
+    val testSetScore =  Evaluations.evaluateAndGiveAUC(new ALSPrediction(model), validation, directory + "/best-on-test-set")
+    logger.info(s"ROC AUC of best model on test set = $testSetScore")
+
     val noPersonalizationPredictor = new NoPersonalizationPrediction(training, defaultRank = 2.5)
+    val baselineScore = Evaluations.evaluateAndGiveAUC(noPersonalizationPredictor, validation, directory + "/baseline-product-mean")
+    logger.info(s"baseline ROC AUC (no personalization) = $testSetScore")
 
-    s"mkdir ${directory + "/baseline-product-mean"}" !!
-
-    Evaluations.evaluateAndGiveAUC(noPersonalizationPredictor, validation, directory + "/baseline-product-mean")
+    persistInDatabase(model)
   }
 
   spark.stop()
