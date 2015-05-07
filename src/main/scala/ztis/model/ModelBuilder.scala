@@ -65,12 +65,16 @@ object ModelBuilder extends App with StrictLogging {
 
     logger.info(s"The best model params: rank=$rank, lambda=$lambda, numIter=$numIter. It's ROC AUC = $score")
 
-    val testSetScore =  Evaluations.evaluateAndGiveAUC(new ALSPrediction(model), validation, directory + "/best-on-test-set")
+    val testSetScore =  Evaluations.evaluateAndGiveAUC(new ALSPrediction(model), test, directory + "/best-on-test-set")
     logger.info(s"ROC AUC of best model on test set = $testSetScore")
 
     val noPersonalizationPredictor = new NoPersonalizationPrediction(training, defaultRank = 2.5)
     val baselineScore = Evaluations.evaluateAndGiveAUC(noPersonalizationPredictor, validation, directory + "/baseline-product-mean")
-    logger.info(s"baseline ROC AUC (no personalization) = $testSetScore")
+    logger.info(s"baseline ROC AUC (no personalization) = $baselineScore")
+
+    val randomPredictor = new RandomPrediction(training)
+    val randomScore = Evaluations.evaluateAndGiveAUC(randomPredictor, validation, directory + "/baseline-random")
+    logger.info(s"baseline ROC AUC (random) = $randomScore")
 
     persistInDatabase(model)
   }
