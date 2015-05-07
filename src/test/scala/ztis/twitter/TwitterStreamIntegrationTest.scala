@@ -36,7 +36,7 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
 
     ssc.start()
     ssc.awaitTermination(10.seconds.toMillis)
-    
+
     val ratings = repository.allRatings()
     val expectedRatings = Vector(UserAndRating(userName, UserOrigin.Twitter, youtubeLink, 1, 0))
     assert(ratings == expectedRatings)
