@@ -4,7 +4,7 @@ import org.apache.spark.mllib.recommendation.Rating
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext._
 
-class NoPersonalizationPrediction(trainingData: RDD[Rating], defaultRank: Double) extends Serializable {
+class NoPersonalizationPrediction(trainingData: RDD[Rating], defaultRank: Double) extends Predictor with Serializable {
   private val productMeanRanks = computeMeans()
   productMeanRanks.cache()
 
@@ -18,7 +18,7 @@ class NoPersonalizationPrediction(trainingData: RDD[Rating], defaultRank: Double
     }
   }
 
-  def unpersist() = {
+  override def unpersist() = {
     productMeanRanks.unpersist()
   }
 
