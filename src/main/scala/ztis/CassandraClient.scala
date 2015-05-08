@@ -2,8 +2,8 @@ package ztis
 
 import java.net.InetSocketAddress
 
-import com.datastax.driver.core.{ResultSet, Cluster}
 import com.datastax.driver.core.policies.RoundRobinPolicy
+import com.datastax.driver.core.{Cluster, ResultSet}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.StrictLogging
 
@@ -13,7 +13,7 @@ class CassandraClient(config: Config) extends StrictLogging {
 
   private val keyspace = config.getString("cassandra.keyspace")
 
-  private val explicitAssocTableName = config.getString("cassandra.explicit-association-table-name")
+  private val ratingsTableName = config.getString("cassandra.ratings-table-name")
 
   private val cluster = Cluster.builder().addContactPointsWithPorts(contactPoints)
     .withLoadBalancingPolicy(new RoundRobinPolicy)
@@ -21,8 +21,8 @@ class CassandraClient(config: Config) extends StrictLogging {
   private val session = cluster.connect()
 
   session.execute(CassandraClient.createKeyspaceQuery(keyspace))
-  session.execute(CassandraClient.createExplicitTableQuery(keyspace, explicitAssocTableName))
-  val preparedInsertToExplicit = session.prepare(CassandraClient.insertToExplicitQuery(keyspace, explicitAssocTableName))
+  session.execute(CassandraClient.createRatingsTableQuery(keyspace, ratingsTableName))
+  val preparedInsertToExplicit = session.prepare(CassandraClient.insertToRatingsQuery(keyspace, ratingsTableName))
 
   private def contactPoints: java.util.List[InetSocketAddress] = {
     config.getStringList("cassandra.contact-points").asScala.map(addressToInetAddress).asJava
@@ -34,18 +34,25 @@ class CassandraClient(config: Config) extends StrictLogging {
     new InetSocketAddress(hostAndPort(0), hostAndPort(1).toInt)
   }
 
-  def updateExplicitAssoc(user: String, origin: UserOrigin, link: String, rating: Int): Unit = {
-    val statement = preparedInsertToExplicit.bind(user, origin.name, link, java.lang.Integer.valueOf(rating))
+  def updateRating(userAndRating: UserAndRating): Unit = {
+    val rating: java.lang.Integer = userAndRating.rating
+    val timesUpvotedByFriends: java.lang.Integer = userAndRating.timesUpvotedByFriends
+    
+    val statement = preparedInsertToExplicit.bind(userAndRating.userName,
+      userAndRating.origin.name, 
+      userAndRating.link,
+      rating,
+      timesUpvotedByFriends)
     session.execute(statement)
   }
-  
+
   def clean(): Unit = {
     logger.info(s"Dropping keyspace $keyspace")
-    session.execute(CassandraClient.dropKeyspaceQuery(keyspace))  
+    session.execute(CassandraClient.dropKeyspaceQuery(keyspace))
   }
-  
-  def getAllExplicitAssociationRows(): ResultSet = {
-    session.execute(CassandraClient.selectAll(keyspace, explicitAssocTableName))
+
+  def allRatings(): ResultSet = {
+    session.execute(CassandraClient.selectAll(keyspace, ratingsTableName))
   }
 }
 
@@ -59,23 +66,23 @@ object CassandraClient {
   def dropKeyspaceQuery(keyspace: String): String = {
     s"DROP KEYSPACE $keyspace"
   }
-  
-  def createExplicitTableQuery(keyspace: String, tableName: String): String =
+
+  def createRatingsTableQuery(keyspace: String, tableName: String): String =
     s"""
        |CREATE TABLE IF NOT EXISTS $keyspace.$tableName (
-                                                         | user_id text,
-                                                         | user_origin text,
-                                                         | link text,
-                                                         | rating int,
-                                                         | PRIMARY KEY((user_id, user_origin), link))
-                                                         |
+                                                         |user_id text,
+                                                         |user_origin text,
+                                                         |link text,
+                                                         |rating int,
+                                                         |timesUpvotedByFriends int,
+                                                         |PRIMARY KEY((user_id, user_origin), link))
      """.stripMargin
 
-  def insertToExplicitQuery(keyspace: String, tableName: String): String =
+  def insertToRatingsQuery(keyspace: String, tableName: String): String =
     s"""
-       |INSERT INTO $keyspace.$tableName (user_id, user_origin, link, rating) VALUES (?, ?, ?, ?)
+       |INSERT INTO $keyspace.$tableName (user_id, user_origin, link, rating, timesUpvotedByFriends) VALUES (?, ?, ?, ?, ?)
      """.stripMargin
-  
+
   def selectAll(keysapce: String, tableName: String): String = {
     s"SELECT * FROM $keysapce.$tableName"
   }
