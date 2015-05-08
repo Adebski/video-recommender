@@ -13,7 +13,7 @@ class UserAndRatingRepository(client: CassandraClient) {
 
     iterator.map(toUserAndRating).toVector
   }
-
+        
   private def toUserAndRating(row: Row): UserAndRating = {
     val userName = row.getString("user_id")
     val origin = UserOrigin.fromString(row.getString("user_origin"))
