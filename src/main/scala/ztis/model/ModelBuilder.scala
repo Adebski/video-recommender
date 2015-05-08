@@ -1,21 +1,21 @@
 package ztis.model
 
-import com.datastax.spark.connector._
 import com.datastax.spark.connector.cql.CassandraConnector
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ConfigValue, ConfigFactory, Config}
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.spark.SparkContext._
-import org.apache.spark.mllib.evaluation.{BinaryClassificationMetrics, RegressionMetrics}
-import org.apache.spark.mllib.recommendation.{ALS, MatrixFactorizationModel, Rating}
+import org.apache.spark.mllib.recommendation.{MatrixFactorizationModel, Rating, ALS}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
+import com.datastax.spark.connector._
+import org.apache.spark.SparkContext._
+import org.apache.spark.mllib.evaluation.{RegressionMetrics, BinaryClassificationMetrics}
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 
-import scala.collection.JavaConverters._
-import scala.language.postfixOps
+import scala.collection.mutable
 import scala.reflect.io.File
 import scala.sys.process._
+import scala.collection.JavaConverters._
 
 object ModelBuilder extends App with StrictLogging {
   val config = ConfigFactory.load("model")
@@ -72,7 +72,7 @@ object ModelBuilder extends App with StrictLogging {
 
   spark.stop()
 
-  def dumpScores(scores: List[(Double, MatrixFactorizationModel, (Int, Double, Int))], filename: String) = {
+  def dumpScores(scores : List[(Double, MatrixFactorizationModel, (Int, Double, Int))], filename: String) = {
     val header = "rank,lambda,numIter,score\n"
     val csv = scores.map {
       case (score, _, params) => params.productIterator.toList.mkString(",") + "," + score.toString
@@ -123,7 +123,7 @@ object ModelBuilder extends App with StrictLogging {
 
     val report =
       s"""|
-         |RMSE: $rmse
+          |RMSE: $rmse
           |AUC PR: $prArea
           |AUC ROC: $rocArea
           |""".stripMargin
@@ -151,7 +151,7 @@ object ModelBuilder extends App with StrictLogging {
 
   private def saveFeatureRdd(keyspace: String, tableName: String, rdd: RDD[(Int, Array[Double])]) = {
     CassandraConnector(sparkConfig).withSessionDo { session =>
-      session.execute( s""" DROP TABLE IF EXISTS $keyspace."$tableName" """)
+      session.execute(s""" DROP TABLE IF EXISTS $keyspace."$tableName" """)
     }
 
     rdd.map(feature => (feature._1, feature._2.toList)).saveAsCassandraTable(keyspace, tableName)
