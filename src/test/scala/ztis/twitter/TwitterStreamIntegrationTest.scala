@@ -22,7 +22,7 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
   val cassandraClient = new CassandraClient(cassandraConfig)
   val linkExtractor = new TwitterLinkExtractor(twitterLinkExtractorConf, cassandraClient)
   val repository = new UserAndRatingRepository(cassandraClient)
-  val ssc = Spark.localStreamingContext()
+  val ssc = Spark.streamingContext(conf = Spark.baseConfiguration("twitter-stream-integration-test"))
   
   "Streamed tweets from twitter" should "be pushed to kafka, processed and persisted in Cassandra" in {
     val queue = mutable.Queue[RDD[Status]]()
