@@ -7,8 +7,6 @@ import twitter4j.Status
 
 object TwitterSparkTransformations extends StrictLogging {
   def pushToKafka(tweets: RDD[Status], topic: String): Unit = {
-    val a: Int = 5
-    val b: Double = a
     tweets.foreach(tweet => pushToKafka(tweet, topic))
   }
 
