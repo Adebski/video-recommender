@@ -21,7 +21,7 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
   val testTopic = twitterStreamConf.getString("twitter-stream.topic")
   val cassandraClient = new CassandraClient(cassandraConfig)
   val linkExtractor = new TwitterLinkExtractor(twitterLinkExtractorConf, cassandraClient)
-  val repository = new ExplicitAssociationRepository(cassandraClient)
+  val repository = new UserAndRatingRepository(cassandraClient)
   val ssc = Spark.localStreamingContext()
   
   "Streamed tweets from twitter" should "be pushed to kafka, processed and persisted in Cassandra" in {
@@ -35,11 +35,11 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
     TwitterSparkTransformations.pushToKafka(dstream, testTopic)
 
     ssc.start()
-    ssc.awaitTerminationOrTimeout(10.seconds.toMillis)
+    ssc.awaitTermination(10.seconds.toMillis)
     
-    val associations = repository.getAllAssociations()
-    val expectedAssociations = Vector(ExplicitAssociationEntry(userName, UserOrigin.Twitter, youtubeLink, 2))
-    assert(associations == expectedAssociations)
+    val ratings = repository.allRatings()
+    val expectedRatings = Vector(UserAndRating(userName, UserOrigin.Twitter, youtubeLink, 1, 0))
+    assert(ratings == expectedRatings)
   }
 
   override protected def afterAll(): Unit = {
