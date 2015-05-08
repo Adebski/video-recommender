@@ -7,6 +7,7 @@ import org.apache.spark.rdd.RDD
 import org.scalatest.{BeforeAndAfterAll, FlatSpec}
 import twitter4j.Status
 import ztis._
+import ztis.cassandra.CassandraClient
 
 import scala.collection.mutable
 import scala.concurrent.duration._

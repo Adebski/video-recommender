@@ -7,7 +7,7 @@ import com.datastax.spark.connector._
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.spark.{SparkConf, SparkContext}
-import ztis.CassandraClient
+import ztis.cassandra.CassandraClient
 
 import scala.language.postfixOps
 import scala.collection.JavaConverters._

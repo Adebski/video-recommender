@@ -3,7 +3,8 @@ package ztis.twitter
 import java.util.concurrent.Executors
 
 import com.typesafe.config.Config
-import ztis.{CassandraClient, KafkaConsumer}
+import ztis.KafkaConsumer
+import ztis.cassandra.CassandraClient
 
 class TwitterLinkExtractor(config: Config, cassandraClient: CassandraClient) {
   private val executor = Executors.newFixedThreadPool(config.getInt("worker-threads"))

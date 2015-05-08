@@ -1,4 +1,4 @@
-package ztis
+package ztis.cassandra
 
 import java.net.InetSocketAddress
 
@@ -6,6 +6,7 @@ import com.datastax.driver.core.policies.RoundRobinPolicy
 import com.datastax.driver.core.{Cluster, ResultSet}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import ztis.UserAndRating
 
 import scala.collection.JavaConverters._
 

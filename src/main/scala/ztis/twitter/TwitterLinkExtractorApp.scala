@@ -1,7 +1,7 @@
 package ztis.twitter
 
 import com.typesafe.config.ConfigFactory
-import ztis.CassandraClient
+import ztis.cassandra.CassandraClient
 
 object TwitterLinkExtractorApp extends App {
   val config = ConfigFactory.load("twitter-link-extractor")
