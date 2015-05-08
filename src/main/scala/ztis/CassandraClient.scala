@@ -60,16 +60,16 @@ object CassandraClient {
 
   def createKeyspaceQuery(keyspace: String): String =
     s"""
-       |CREATE KEYSPACE IF NOT EXISTS $keyspace WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1}
+       |CREATE KEYSPACE IF NOT EXISTS "$keyspace" WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1}
     """.stripMargin
 
   def dropKeyspaceQuery(keyspace: String): String = {
-    s"DROP KEYSPACE $keyspace"
+    s"""DROP KEYSPACE "$keyspace" """
   }
 
   def createRatingsTableQuery(keyspace: String, tableName: String): String =
     s"""
-       |CREATE TABLE IF NOT EXISTS $keyspace.$tableName (
+       |CREATE TABLE IF NOT EXISTS "$keyspace"."$tableName" (
                                                          |user_id text,
                                                          |user_origin text,
                                                          |link text,
@@ -80,10 +80,10 @@ object CassandraClient {
 
   def insertToRatingsQuery(keyspace: String, tableName: String): String =
     s"""
-       |INSERT INTO $keyspace.$tableName (user_id, user_origin, link, rating, timesUpvotedByFriends) VALUES (?, ?, ?, ?, ?)
+       |INSERT INTO "$keyspace"."$tableName" (user_id, user_origin, link, rating, timesUpvotedByFriends) VALUES (?, ?, ?, ?, ?)
      """.stripMargin
 
-  def selectAll(keysapce: String, tableName: String): String = {
-    s"SELECT * FROM $keysapce.$tableName"
+  def selectAll(keyspace: String, tableName: String): String = {
+    s"""SELECT * FROM "$keyspace"."$tableName" """
   }
 }
