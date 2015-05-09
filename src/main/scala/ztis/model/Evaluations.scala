@@ -8,11 +8,12 @@ import scala.sys.process._
 import org.apache.spark.SparkContext._
 
 import scala.reflect.io.File
+import scala.language.postfixOps
 
 object Evaluations extends StrictLogging {
 
-  def evaluateAndGiveAUC(predictor: Predictor, validationData: RDD[Rating], reportDirectory: String) = {
-    s"mkdir ${reportDirectory}" !!
+  def evaluateAndGiveAUC(predictor: Predictor, validationData: RDD[Rating], reportDirectory: String, buildTime: Double = -1.0) = {
+    s"mkdir $reportDirectory" !!
 
     val userProducts = validationData.map(rating => (rating.user, rating.product))
     val predictions = predictor.predictMany(userProducts)
@@ -58,6 +59,7 @@ object Evaluations extends StrictLogging {
           |RMSE: $rmse
           |AUC PR: $prArea
           |AUC ROC: $rocArea
+          |Build time: $buildTime
           |""".stripMargin
 
     logger.info(report)

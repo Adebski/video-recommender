@@ -8,11 +8,11 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import com.datastax.spark.connector._
 import org.apache.spark.SparkContext._
-import org.apache.spark.mllib.evaluation.{RegressionMetrics, BinaryClassificationMetrics}
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 
 import scala.reflect.io.File
+import scala.language.postfixOps
 import scala.sys.process._
 import scala.collection.JavaConverters._
 
@@ -36,8 +36,6 @@ object ModelBuilder extends App with StrictLogging {
   validation.cache()
   test.cache()
 
-  logger.info(s"Count: ${training.count()}\n")
-
   {
     val ranks = config.getIntList("model.params.ranks").asScala.toVector.map(_.toInt)
     val lambdas = config.getDoubleList("model.params.lambdas").asScala.toVector.map(_.toDouble)
@@ -51,16 +49,18 @@ object ModelBuilder extends App with StrictLogging {
     val results = paramsCrossProduct.map {
       case params@(rank, lambda, numIter) => {
         val modelDirectory = s"$directory/r$rank-l${(lambda * 100).toInt}-i$numIter"
-        val model = ALS.train(training, rank, numIter, lambda)
-        val score = Evaluations.evaluateAndGiveAUC(new ALSPrediction(model), validation, modelDirectory)
-
-        (score, model, params)
+        val (model, buildTime) = time {
+          ALS.train(training, rank, numIter, lambda)
+        }
+        val score = Evaluations.evaluateAndGiveAUC(new ALSPrediction(model), validation, modelDirectory, buildTime)
+        (score, model, params, buildTime)
       }
     }.sortBy(-_._1).toList
 
     val best = results.head
-    val (score, model, (rank, lambda, numIter)) = best
+    val (score, model, (rank, lambda, numIter), _) = best
 
+    unpersistModels(results.tail)
     dumpScores(results, directory + "/scores.txt")
 
     logger.info(s"The best model params: rank=$rank, lambda=$lambda, numIter=$numIter. It's ROC AUC = $score")
@@ -79,12 +79,21 @@ object ModelBuilder extends App with StrictLogging {
     persistInDatabase(model)
   }
 
+  def unpersistModels(results: List[(Double, MatrixFactorizationModel, (Int, Double, Int), Double)]): Unit = {
+    results.foreach {
+      case (_, model, _, _) => {
+        model.userFeatures.unpersist()
+        model.productFeatures.unpersist()
+      }
+    }
+  }
+
   spark.stop()
 
-  def dumpScores(scores : List[(Double, MatrixFactorizationModel, (Int, Double, Int))], filename: String) = {
-    val header = "rank,lambda,numIter,score\n"
+  def dumpScores(scores : List[(Double, MatrixFactorizationModel, (Int, Double, Int), Double)], filename: String) = {
+    val header = "rank,lambda,numIter,score,time\n"
     val csv = scores.map {
-      case (score, _, params) => params.productIterator.toList.mkString(",") + "," + score.toString
+      case (score, _, params, buildTime) => params.productIterator.toList.mkString(",") + "," + score.toString + "," + buildTime.toString
     }.mkString("\n")
 
     File(filename).writeAll(header, csv)
@@ -128,4 +137,10 @@ object ModelBuilder extends App with StrictLogging {
     sparkConfig
   }
 
+  private def time[A](f: => A): (A, Double) = {
+    val start = System.nanoTime
+    val result = f
+    val elapsedTimeInMs = (System.nanoTime-start)/1e6
+    (result, elapsedTimeInMs)
+  }
 }
