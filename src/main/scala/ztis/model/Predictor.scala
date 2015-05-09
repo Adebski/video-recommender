@@ -5,5 +5,5 @@ import org.apache.spark.rdd.RDD
 
 trait Predictor {
   def predictMany(userProducts: RDD[(Int, Int)]) : RDD[Rating]
-  def unpersist() = {}
+  def unpersist(): Unit = {}
 }

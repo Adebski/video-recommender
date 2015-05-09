@@ -27,9 +27,9 @@ class NoPersonalizationPrediction(trainingData: RDD[Rating], defaultRank: Double
 
     def meanProductRank(ranks: Iterable[Rating]) = {
       val seq = ranks.toSeq
-      val noRatingUsers = allUsers - seq.length.toDouble
+      val noRatingUsers = allUsers - seq.length
 
-      (seq.map(_.rating).sum + (noRatingUsers * defaultRank) ) / allUsers
+      (seq.map(_.rating).sum + (noRatingUsers * defaultRank) ) / allUsers.toDouble
     }
 
     trainingData.groupBy(_.product).mapValues(meanProductRank)

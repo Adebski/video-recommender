@@ -1,16 +1,15 @@
 package ztis.model
 
 import org.apache.spark.{SparkConf, SparkContext}
-import org.scalatest.{BeforeAndAfter, FlatSpec}
+import org.scalatest.{BeforeAndAfterAll, FlatSpec}
 
-class SparkSpec extends FlatSpec with BeforeAndAfter {
+class SparkSpec extends FlatSpec with BeforeAndAfterAll {
   private val master = "local[2]"
   private val appName = "spark-test"
 
   protected var sc: SparkContext = _
 
-  before {
-
+  override def beforeAll() {
     val conf = new SparkConf()
       .setMaster(master)
       .setAppName(appName)
@@ -18,7 +17,7 @@ class SparkSpec extends FlatSpec with BeforeAndAfter {
     sc = new SparkContext(conf)
   }
 
-  after {
+  override def afterAll() = {
     if (sc != null) {
       sc.stop()
     }
