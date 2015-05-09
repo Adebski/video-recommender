@@ -115,9 +115,9 @@ object ModelBuilder extends App with StrictLogging {
   // TODO(#8): extract to CassandraClient or sth like this
   private def associationRdd = {
     val keyspace = config.getString("cassandra.keyspace")
-    val explicitAssocTableName = config.getString("cassandra.explicit-association-table-name")
+    val ratingsTableName = config.getString("cassandra.ratings-table-name")
 
-    spark.cassandraTable(keyspace, explicitAssocTableName.toLowerCase)
+    spark.cassandraTable(keyspace, ratingsTableName)
   }
 
   // TODO(#8): copied from MovieLensDataLoader, adhere to DRY,
