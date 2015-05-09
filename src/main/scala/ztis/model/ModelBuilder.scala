@@ -53,6 +53,7 @@ object ModelBuilder extends App with StrictLogging {
           ALS.train(training, rank, numIter, lambda)
         }
         val score = Evaluations.evaluateAndGiveAUC(new ALSPrediction(model), validation, modelDirectory, buildTime)
+        unpersistModel(model)
         (score, model, params, buildTime)
       }
     }.sortBy(-_._1).toList
@@ -60,7 +61,6 @@ object ModelBuilder extends App with StrictLogging {
     val best = results.head
     val (score, model, (rank, lambda, numIter), _) = best
 
-    unpersistModels(results.tail)
     dumpScores(results, directory + "/scores.txt")
 
     logger.info(s"The best model params: rank=$rank, lambda=$lambda, numIter=$numIter. It's ROC AUC = $score")
@@ -79,13 +79,9 @@ object ModelBuilder extends App with StrictLogging {
     persistInDatabase(model)
   }
 
-  def unpersistModels(results: List[(Double, MatrixFactorizationModel, (Int, Double, Int), Double)]): Unit = {
-    results.foreach {
-      case (_, model, _, _) => {
-        model.userFeatures.unpersist()
-        model.productFeatures.unpersist()
-      }
-    }
+  def unpersistModel(model: MatrixFactorizationModel): Unit = {
+    model.userFeatures.unpersist()
+    model.productFeatures.unpersist()
   }
 
   spark.stop()
