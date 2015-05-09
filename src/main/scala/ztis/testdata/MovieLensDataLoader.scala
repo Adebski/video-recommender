@@ -36,7 +36,7 @@ object MovieLensDataLoader extends App with StrictLogging {
     val unaryScale = config.getBoolean("testdata.unary-scale")
 
     val keyspace = config.getString("cassandra.keyspace")
-    val explicitAssocTableName = config.getString("cassandra.explicit-association-table-name")
+    val explicitAssocTableName = config.getString("cassandra.ratings-table-name")
 
     val ratingFile = spark.textFile("ml-1m/ratings.dat")
     val ratings = if(unaryScale) {
