@@ -2,10 +2,12 @@ package ztis.model
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.spark.mllib.recommendation.{ALS, MatrixFactorizationModel}
+import org.apache.spark.mllib.recommendation.{ALS, Rating, MatrixFactorizationModel}
+import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import ztis.Spark
+import org.apache.spark.SparkContext._
 import ztis.cassandra.{CassandraConfiguration, CassandraClient, SparkCassandraClient}
 
 import scala.collection.JavaConverters._
@@ -21,7 +23,7 @@ object ModelBuilder extends App with StrictLogging {
   val ratings = sparkCassandraClient.ratingsRDD
 
   val Array(training, maybeValidation, maybeTest) = ratings.randomSplit(Array(0.6, 0.2, 0.2))
-
+  
   val complementValidationSets = config.getBoolean("model.complement-validation-sets")
   val complementFactor = config.getDouble("model.complement-factor")
 
@@ -73,14 +75,14 @@ object ModelBuilder extends App with StrictLogging {
   val (score, model, (rank, lambda, numIter, alpha), _) = best
 
   dumpScores(results, directory + "/scores.txt")
-
   logger.info(s"The best model params: rank=$rank, lambda=$lambda, numIter=$numIter, alpha=$alpha. It's ROC AUC = $score")
 
   val testSetScore =  Evaluations.evaluateAndGiveAUC(new ALSPrediction(model), test,
     minRatingToConsiderAsGood, directory + "/best-on-test-set")
   logger.info(s"ROC AUC of best model on test set = $testSetScore")
 
-  val noPersonalizationPredictor = new NoPersonalizationPrediction(training, defaultRank = 2.5)
+  val noPersonalizationPredictor = new NoPersonalizationPrediction(training,
+    defaultRank = config.getInt("model.no-personalization-default-rank"))
   val baselineScore = Evaluations.evaluateAndGiveAUC(noPersonalizationPredictor, validation,
     minRatingToConsiderAsGood, directory + "/baseline-product-mean")
   logger.info(s"baseline ROC AUC (no personalization) = $baselineScore")
@@ -92,7 +94,7 @@ object ModelBuilder extends App with StrictLogging {
 
   sparkCassandraClient.saveModel(model)
   sparkCassandraClient.sparkContext.stop()
-
+  
   private def unpersistModel(model: MatrixFactorizationModel): Unit = {
     model.userFeatures.unpersist()
     model.productFeatures.unpersist()
