@@ -12,7 +12,9 @@ import scala.language.postfixOps
 
 object Evaluations extends StrictLogging {
 
-  def evaluateAndGiveAUC(predictor: Predictor, validationData: RDD[Rating], reportDirectory: String, buildTime: Double = -1.0) = {
+  def evaluateAndGiveAUC(predictor: Predictor, validationData: RDD[Rating],
+                         minRatingToConsiderAsGood: Int,
+                         reportDirectory: String, buildTime: Double = -1.0) = {
     s"mkdir $reportDirectory" !!
 
     val userProducts = validationData.map(rating => (rating.user, rating.product))
@@ -25,7 +27,7 @@ object Evaluations extends StrictLogging {
     val regressionMetrics = new RegressionMetrics(predictionAndObservations)
     val rmse = regressionMetrics.rootMeanSquaredError
 
-    def isGoodEnough(observation: Double) = if (observation > 3) 1.0 else 0.0
+    def isGoodEnough(observation: Double) = if (observation.round >= minRatingToConsiderAsGood) 1.0 else 0.0
 
     val scoresAndLabels = predictionAndObservations.map {
       case (prediction, observation) => (prediction, isGoodEnough(observation))
