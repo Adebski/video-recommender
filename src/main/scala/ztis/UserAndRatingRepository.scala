@@ -8,7 +8,7 @@ import scala.collection.JavaConverters._
 class UserAndRatingRepository(client: CassandraClient) {
 
   def allRatings(): Vector[UserAndRating] = {
-    val resultSet = client.allRatings()
+    val resultSet = client.allRatings
     val iterator = resultSet.iterator().asScala
 
     iterator.map(toUserAndRating).toVector

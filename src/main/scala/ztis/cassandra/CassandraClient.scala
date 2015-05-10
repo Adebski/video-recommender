@@ -17,6 +17,10 @@ class CassandraClient(config: Config) extends StrictLogging {
 
   private[cassandra] val ratingsTableName = CassandraClient.ratingsTableName(config)
 
+  private[cassandra] val userFeaturesTableName = CassandraClient.userFeaturesTableName(config)
+  
+  private[cassandra] val productFeaturesTableName = CassandraClient.productFeaturesTableName(config)
+  
   private[cassandra] val contactPoints = CassandraClient.contactPoints(config)
   
   private val cluster = Cluster.builder().addContactPointsWithPorts(contactPoints)
@@ -45,7 +49,12 @@ class CassandraClient(config: Config) extends StrictLogging {
     session.execute(CassandraClient.dropKeyspaceQuery(keyspace))
   }
 
-  def allRatings(): ResultSet = {
+  def dropTable(keyspace: String, table: String): Unit = {
+    logger.info(s"Dropping table $keyspace.$table")
+    session.execute(CassandraClient.dropTableQuery(keyspace, table))
+  }
+  
+  def allRatings: ResultSet = {
     session.execute(CassandraClient.selectAll(keyspace, ratingsTableName))
   }
 }
@@ -58,6 +67,14 @@ object CassandraClient {
   
   def ratingsTableName(config: Config): String = {
     config.getString("cassandra.ratings-table-name")  
+  }
+  
+  def userFeaturesTableName(config: Config): String = {
+    config.getString("cassandra.user-features-table-name")
+  }
+  
+  def productFeaturesTableName(config: Config): String = {
+    config.getString("cassandra.product-features-table-name")  
   }
   
   def contactPoints(config: Config): util.List[InetSocketAddress] = {
@@ -79,6 +96,10 @@ object CassandraClient {
     s"""DROP KEYSPACE "$keyspace" """
   }
 
+  def dropTableQuery(keyspace: String, table: String): String = {
+    s"""DROP TABLE IF EXISTS "$keyspace"."$table" """
+  }
+  
   def createRatingsTableQuery(keyspace: String, tableName: String): String =
     s"""
        |CREATE TABLE IF NOT EXISTS "$keyspace"."$tableName" (
