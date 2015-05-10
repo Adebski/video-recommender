@@ -52,10 +52,27 @@ class SparkCassandraClient(val client: CassandraClient, val sparkContext: SparkC
     saveFeatures(model.productFeatures, client.keyspace, client.productFeaturesTableName)
   }
 
+
   private def saveFeatures(rdd: FeaturesRDD, keyspace: String, table: String): Unit = {
     client.dropTable(keyspace, table)
     //toVector because spark connector does not support automatic mapping of mutable types
     rdd.map(feature => (feature._1, feature._2.toVector)).saveAsCassandraTable(keyspace, table)
+  }
+  
+  def fetchModel : MatrixFactorizationModel = {
+    val userFeatures = loadFeatures(client.keyspace, client.userFeaturesTableName)
+    val productFeatures = loadFeatures(client.keyspace, client.productFeaturesTableName)
+
+    userFeatures.cache()
+    productFeatures.cache()
+
+    val rank = userFeatures.first()._2.length
+
+    new MatrixFactorizationModel(rank, userFeatures, productFeatures)
+  }
+
+  private def loadFeatures(keyspace: String, tableName: String): RDD[(Int, Array[Double])] = {
+    sparkContext.cassandraTable[(Int, Vector[Double])](keyspace, tableName).map(feature => (feature._1, feature._2.toArray))
   }
 }
 
