@@ -7,6 +7,7 @@ import org.apache.spark.rdd.RDD
 import org.scalatest.{BeforeAndAfterAll, FlatSpec}
 import twitter4j.Status
 import ztis._
+import ztis.cassandra.{CassandraConfiguration, CassandraClient}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -15,14 +16,14 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
 
   val twitterLink = "http://t.co/H27Ftvjoxe"
   val youtubeLink = "https://www.youtube.com/watch?v=PBm8H6NFsGM"
-  val cassandraConfig = ConfigFactory.load("cassandra.conf")
+  val cassandraConfig = CassandraConfiguration(ConfigFactory.load("cassandra.conf"))
   val twitterLinkExtractorConf = ConfigFactory.load("twitter-link-extractor.conf")
   val twitterStreamConf = ConfigFactory.load("twitter-stream.conf")
   val testTopic = twitterStreamConf.getString("twitter-stream.topic")
   val cassandraClient = new CassandraClient(cassandraConfig)
   val linkExtractor = new TwitterLinkExtractor(twitterLinkExtractorConf, cassandraClient)
   val repository = new UserAndRatingRepository(cassandraClient)
-  val ssc = Spark.localStreamingContext()
+  val ssc = Spark.streamingContext(conf = Spark.baseConfiguration("twitter-stream-integration-test"))
   
   "Streamed tweets from twitter" should "be pushed to kafka, processed and persisted in Cassandra" in {
     val queue = mutable.Queue[RDD[Status]]()

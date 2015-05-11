@@ -1,7 +1,8 @@
 package ztis.twitter
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import ztis.{UserAndRating, CassandraClient, UserOrigin}
+import ztis.cassandra.CassandraClient
+import ztis.{UserAndRating, UserOrigin}
 
 import scalaj.http.HttpOptions
 

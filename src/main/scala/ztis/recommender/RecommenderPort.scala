@@ -58,7 +58,7 @@ trait RecommenderPort extends HttpService {
       }
     }
 
-  private def presentRecommendations(request: RecommendRequest, recommendations: List[Video]) = {
+  private def presentRecommendations(request: RecommendRequest, recommendations: Vector[Video]) = {
     <html>
       <body>
         <h1>User</h1>
