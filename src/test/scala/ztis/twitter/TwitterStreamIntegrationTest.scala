@@ -7,7 +7,7 @@ import org.apache.spark.rdd.RDD
 import org.scalatest.{BeforeAndAfterAll, FlatSpec}
 import twitter4j.Status
 import ztis._
-import ztis.cassandra.CassandraClient
+import ztis.cassandra.{CassandraConfiguration, CassandraClient}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -16,7 +16,7 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
 
   val twitterLink = "http://t.co/H27Ftvjoxe"
   val youtubeLink = "https://www.youtube.com/watch?v=PBm8H6NFsGM"
-  val cassandraConfig = ConfigFactory.load("cassandra.conf")
+  val cassandraConfig = CassandraConfiguration(ConfigFactory.load("cassandra.conf"))
   val twitterLinkExtractorConf = ConfigFactory.load("twitter-link-extractor.conf")
   val twitterStreamConf = ConfigFactory.load("twitter-stream.conf")
   val testTopic = twitterStreamConf.getString("twitter-stream.topic")

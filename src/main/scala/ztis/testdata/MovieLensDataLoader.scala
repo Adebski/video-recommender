@@ -5,7 +5,7 @@ import java.net.URL
 
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import ztis.cassandra.{CassandraClient, SparkCassandraClient}
+import ztis.cassandra.{CassandraConfiguration, CassandraClient, SparkCassandraClient}
 import ztis.{Spark, UserAndRating, UserOrigin}
 
 import scala.language.postfixOps
@@ -15,9 +15,10 @@ object MovieLensDataLoader extends App with StrictLogging {
 
   try {
     val config = ConfigFactory.load("testdata")
+    val cassandraConfig = CassandraConfiguration(config)
     val unaryScale = config.getBoolean("testdata.unary-scale")
-    val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("MovieLensLoader"), config)
-    val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(config), Spark.sparkContext(sparkConfig))
+    val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("MovieLensLoader"), cassandraConfig)
+    val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(cassandraConfig), Spark.sparkContext(sparkConfig))
 
     downloadDataset(config)
     insertMovielensDataToCassandra(sparkCassandraClient, unaryScale)

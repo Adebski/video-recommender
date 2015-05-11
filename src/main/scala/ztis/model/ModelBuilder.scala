@@ -6,7 +6,7 @@ import org.apache.spark.mllib.recommendation.{ALS, MatrixFactorizationModel}
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import ztis.Spark
-import ztis.cassandra.{CassandraClient, SparkCassandraClient}
+import ztis.cassandra.{CassandraConfiguration, CassandraClient, SparkCassandraClient}
 
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
@@ -15,8 +15,9 @@ import scala.sys.process._
 
 object ModelBuilder extends App with StrictLogging {
   val config = ConfigFactory.load("model")
-  val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("ModelBuilder"), config)
-  val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(config), Spark.sparkContext(sparkConfig))
+  val cassandraConfig = CassandraConfiguration(config)
+  val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("ModelBuilder"), cassandraConfig)
+  val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(cassandraConfig), Spark.sparkContext(sparkConfig))
   val ratings = sparkCassandraClient.ratingsRDD
 
   val Array(training, validation, test) = ratings.randomSplit(Array(0.6, 0.2, 0.2))

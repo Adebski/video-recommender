@@ -1,27 +1,21 @@
 package ztis.recommender
 
-import com.typesafe.config.{ConfigFactory, Config}
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.spark.rdd.RDD
-import org.apache.spark.{SparkContext, SparkConf}
 import org.apache.spark.mllib.recommendation.MatrixFactorizationModel
-import com.datastax.spark.connector._
-
-import org.apache.spark.SparkContext._
 import ztis.Spark
-import ztis.cassandra.{CassandraClient, SparkCassandraClient}
-import scala.collection.JavaConverters._
+import ztis.cassandra.{CassandraClient, CassandraConfiguration, SparkCassandraClient}
 
 class RecommenderService extends StrictLogging {
-  private val config = ConfigFactory.load("model")
-  private val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("ModelBuilder"), config)
-  private val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(config), Spark.sparkContext(sparkConfig))
-  private val model : MatrixFactorizationModel = sparkCassandraClient.fetchModel
+  private val cassandraConfig = CassandraConfiguration(ConfigFactory.load("model"))
+  private val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("ModelBuilder"), cassandraConfig)
+  private val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(cassandraConfig), Spark.sparkContext(sparkConfig))
+  private val model: MatrixFactorizationModel = sparkCassandraClient.fetchModel
   private val allUsers: Set[Int] = model.userFeatures.map(_._1).collect().toSet
 
   logger.info("Recommendation model successfully loaded.")
 
-  def recommend(request: RecommendRequest) : Either[Vector[Video], NoUserData.type] = {
+  def recommend(request: RecommendRequest): Either[Vector[Video], NoUserData.type] = {
     val usersWithData = filterUsers(request)
 
     if (usersWithData.isEmpty) {
@@ -67,7 +61,7 @@ class RecommenderService extends StrictLogging {
     usersWithData
   }
 
-  private def haveDataFor(userId : Int) = {
+  private def haveDataFor(userId: Int) = {
     allUsers.contains(userId)
   }
 }
