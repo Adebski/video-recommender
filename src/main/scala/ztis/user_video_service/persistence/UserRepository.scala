@@ -13,14 +13,20 @@ class UserRepository(graphDatabaseService: GraphDatabaseService) extends StrictL
 
   implicit val _service = graphDatabaseService
 
-  def getOrCreateTwitterUser(request: RegisterTwitterUser, internalID: Int): TwitterUserRegistered = {
-    logger.debug(s"getOrCreateTwitterUser $request")
+  def getOrCreateTwitterUser(request: RegisterTwitterUser, nextInternalID: Int): (Int, TwitterUserRegistered) = {
+    logger.debug(s"getOrCreateTwitterUser request = $request, nextInternalID = $nextInternalID")
     val index = Indexes.TwitterUserExternalUserID
 
     val node = Option(graphDatabaseService.findNode(index.label, index.property, request.externalUserID))
-      .getOrElse(createTwitterUser(index, request, internalID))
-
-    TwitterUserRegistered(node.getProperty(FieldNames.InternalUserID).asInstanceOf[Int], request)
+      .getOrElse(createTwitterUser(index, request, nextInternalID))
+    val internalUserID = node.getProperty(FieldNames.InternalUserID).asInstanceOf[Int]     
+    val updatedNextInternalID = if (internalUserID == nextInternalID) {
+      nextInternalID +1
+    } else {
+      nextInternalID
+    }
+    
+    (updatedNextInternalID, TwitterUserRegistered(internalUserID, request))
   }
 
   private def createTwitterUser(index: IndexDefinition, request: RegisterTwitterUser, internalID: Int): Node = {
@@ -33,14 +39,20 @@ class UserRepository(graphDatabaseService: GraphDatabaseService) extends StrictL
     node
   }
 
-  def getOrCreateWykopUser(request: RegisterWykopUser, internalID: Int): WykopUserRegistered = {
+  def getOrCreateWykopUser(request: RegisterWykopUser, nextInternalID: Int): (Int, WykopUserRegistered) = {
     logger.debug(s"getOrCreateWykopUser $request")
     val index = Indexes.WykopUserExternalUserName
 
     val node = Option(graphDatabaseService.findNode(index.label, index.property, request.externalUserName))
-      .getOrElse(createWykopUser(index, request, internalID))
-
-    WykopUserRegistered(node.getProperty(FieldNames.InternalUserID).asInstanceOf[Int], request)
+      .getOrElse(createWykopUser(index, request, nextInternalID))
+    val internalUserID = node.getProperty(FieldNames.InternalUserID).asInstanceOf[Int]
+    val updatedNextInternalID = if (internalUserID == nextInternalID) {
+      nextInternalID +1
+    } else {
+      nextInternalID
+    }
+    
+    (updatedNextInternalID, WykopUserRegistered(internalUserID, request))
   }
 
   private def createWykopUser(index: IndexDefinition, request: RegisterWykopUser, internalID: Int): Node = {

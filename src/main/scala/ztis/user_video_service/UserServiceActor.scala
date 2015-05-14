@@ -71,24 +71,20 @@ class UserServiceActor(graphDatabaseService: GraphDatabaseService,
   }
 
   private def handleTwitterRequest(request: RegisterTwitterUser): TwitterUserRegistered = {
-    val response = userRepository.getOrCreateTwitterUser(request, tempNextInternalID)
+    val result: (Int, TwitterUserRegistered) = userRepository.getOrCreateTwitterUser(request, tempNextInternalID)
 
-    if (response.internalUserID == tempNextInternalID) {
-      tempNextInternalID += 1
-      metadataRepository.updateNextUserInternalID(tempNextInternalID)
-    }
+    tempNextInternalID = result._1
+    metadataRepository.updateNextUserInternalID(tempNextInternalID)
 
-    response
+    result._2
   }
 
   private def handleWykopRequest(request: RegisterWykopUser): WykopUserRegistered = {
-    val response = userRepository.getOrCreateWykopUser(request, tempNextInternalID)
+    val result: (Int, WykopUserRegistered) = userRepository.getOrCreateWykopUser(request, tempNextInternalID)
 
-    if (response.internalUserID == tempNextInternalID) {
-      tempNextInternalID += 1
-      metadataRepository.updateNextUserInternalID(tempNextInternalID)
-    }
+    tempNextInternalID = result._1
+    metadataRepository.updateNextUserInternalID(tempNextInternalID)
 
-    response
+    result._2
   }
 }

@@ -6,14 +6,16 @@ import akka.event.LoggingReceive
 import org.neo4j.graphdb.GraphDatabaseService
 import ztis.VideoOrigin
 import ztis.user_video_service.ServiceActorMessages.{NextInternalIDRequest, NextInternalIDResponse}
-import ztis.user_video_service.VideoServiceActor.{VideoRegistered, RegisterVideo}
+import ztis.user_video_service.VideoServiceActor.{VideosRegistered, RegisterVideos}
 import ztis.user_video_service.persistence.{Metadata, MetadataRepository, UnitOfWork, VideoRepository}
 
 object VideoServiceActor {
 
-  case class RegisterVideo(origin: VideoOrigin, uri: java.net.URI)
+  case class Video(origin: VideoOrigin, uri: java.net.URI)
+  
+  case class RegisterVideos(videos: Vector[Video])
 
-  case class VideoRegistered(internalVideoID: Int, request: RegisterVideo)
+  case class VideosRegistered(internalVideoIDs: Vector[Int], request: RegisterVideos)
 
   def props(graphDatabaseService: GraphDatabaseService,
             videoRepository: VideoRepository,
@@ -44,17 +46,15 @@ class VideoServiceActor(graphDatabaseService: GraphDatabaseService,
       sender() ! NextInternalIDResponse(nextInternalID)
     }
 
-    case request: RegisterVideo => {
+    case request: RegisterVideos => {
       try {
-        val response: VideoRegistered = unitOfWork { () => 
-          val result = videoRepository.getOrCreateVideo(request, tempNextInternalID)
+        val response: VideosRegistered = unitOfWork { () => 
+          val result: (Int, VideosRegistered) = videoRepository.getOrCreateVideos(request, tempNextInternalID)
 
-          if (result.internalVideoID == tempNextInternalID) {
-            tempNextInternalID += 1
-            metadataRepository.updateNextVideoInternalID(tempNextInternalID)
-          }
+          tempNextInternalID = result._1
+          metadataRepository.updateNextVideoInternalID(tempNextInternalID)
 
-          result
+          result._2
         }
 
         sender() ! response
