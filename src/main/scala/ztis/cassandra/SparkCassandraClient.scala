@@ -26,12 +26,6 @@ class SparkCassandraClient(val client: CassandraClient, val sparkContext: SparkC
     }
   }
 
-  /*
-  TODO - #16. Here we are assuming that username and link are represented as ints - that may not be true. 
-  When the data is pulled from Wykop/Twitter links are represented as text and user ids may be textual (wykop) or 
-  integers (twitter) - for now this will only work when data is pulled from movielens database. 
- */
-
   def ratingsRDD: RDD[Rating] = {
     sparkContext.cassandraTable(client.config.keyspace, client.config.ratingsTableName).map { row =>
       val userId = row.getInt("user_id")
