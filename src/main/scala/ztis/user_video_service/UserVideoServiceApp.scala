@@ -21,8 +21,8 @@ object UserVideoServiceApp extends App with StrictLogging {
 
   val cluster = Cluster(system).registerOnMemberUp {
     logger.info("Starting actor for servicing user requests")
-
     system.actorOf(UserServiceActor.props(graphDb, userRepository, metadataRepository), "user-service-actor")
+    logger.info("Starting actor for servicing video requests")
     system.actorOf(VideoServiceActor.props(graphDb, videoRepository, metadataRepository), "video-service-actor")
   }
 }

@@ -12,14 +12,15 @@ object TweetProcessorApp extends App with StrictLogging {
   val system = ActorSystem("ClusterSystem", config)
   val cassandraConfig = CassandraConfiguration(config)
   val cassandraClient = new CassandraClient(cassandraConfig)
-  val extractor = null // new TwitterUserAndRatingExtractor(config, cassandraClient)
 
   val cluster = Cluster(system).registerOnMemberUp {
     logger.info("Creating TweetProcessor")
     val userServiceRouter = createRouter("user-service-router")
     val videoServiceRouter = createRouter("video-service-router")
+    val tweetProcessorActor =
+      system.actorOf(TweetProcessorActorSupervisor.props(cassandraClient, userServiceActor = userServiceRouter, videoServiceActor = videoServiceRouter), "tweet-processor-actor-supervisor")
 
-    new TweetProcessor(system, config, cassandraClient, userServiceActor = userServiceRouter, videoServiceActor = videoServiceRouter)
+    new TweetProcessor(system, config, tweetProcessorActor)
   }
 
   def createRouter(routerName: String) = {

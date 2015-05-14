@@ -39,7 +39,10 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
   "Streamed tweets from twitter" should "be pushed to kafka, processed and persisted in Cassandra" in {
     val userService = system.actorOf(UserServiceActor.props(graphDb, userRepository, metadataRepository))
     val videoService = system.actorOf(VideoServiceActor.props(graphDb, videoRepository, metadataRepository))
-    new TweetProcessor(system, tweetProcessorConfig, cassandraClient, userServiceActor = userService, videoServiceActor = videoService)
+    val tweetProcessorActor = 
+      system.actorOf(TweetProcessorActorSupervisor.props(cassandraClient, userServiceActor = userService, videoServiceActor = videoService), "tweet-processor-actor-supervisor")
+
+    new TweetProcessor(system, tweetProcessorConfig, tweetProcessorActor)
 
     val queue = mutable.Queue[RDD[Status]]()
     val dstream = ssc.queueStream(queue)

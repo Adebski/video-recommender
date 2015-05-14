@@ -1,5 +1,7 @@
 package ztis.twitter
 
+import java.io.IOException
+
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.event.LoggingReceive
 import com.twitter.Extractor
@@ -52,7 +54,7 @@ class TweetProcessorActor(tweet: Tweet,
       }
 
       if (videos.nonEmpty) {
-        log.info(s"Extracted videos $videos from $resolvedLinks")
+        log.info(s"Extracted videos $videos from $resolvedLinks that were resolved from $links")
         userServiceActor ! RegisterTwitterUser(tweet.userName(), tweet.userId())
         videoServiceActor ! RegisterVideos(videos)
       } else {
@@ -60,14 +62,14 @@ class TweetProcessorActor(tweet: Tweet,
       }
     }
     case response: TwitterUserRegistered => {
-      userResponse = Option(response)
+      userResponse = Some(response)
 
       if (bothResponsesReceived) {
         processResponses()
       }
     }
     case response: VideosRegistered => {
-      videoResponse = Option(response)
+      videoResponse = Some(response)
 
       if (bothResponsesReceived) {
         processResponses()
@@ -80,25 +82,39 @@ class TweetProcessorActor(tweet: Tweet,
   }
 
   private def processResponses(): Unit = {
-    val userID = userResponse.get.internalUserID
-    val videoIDWithOrigin: Vector[(Int, Video)] = 
-      videoResponse.get.internalVideoIDs.zip(videoResponse.get.request.videos)
+    try {
+      val userID = userResponse.get.internalUserID
+      val videoIDWithOrigin: Vector[(Int, Video)] =
+        videoResponse.get.internalVideoIDs.zip(videoResponse.get.request.videos)
 
-    videoIDWithOrigin.foreach { videoInformation =>
-      val videoID = videoInformation._1
-      val videoOrigin = videoInformation._2.origin
-      val toPersist = 
-        UserAndRating(userID, UserOrigin.Twitter, videoID, videoOrigin, 1, 0)
-      
-      cassandraClient.updateRating(toPersist)
+      videoIDWithOrigin.foreach { videoInformation =>
+        val videoID = videoInformation._1
+        val videoOrigin = videoInformation._2.origin
+        val toPersist =
+          UserAndRating(userID, UserOrigin.Twitter, videoID, videoOrigin, 1, 0)
+        
+        log.info(s"Persisting $toPersist")
+        cassandraClient.updateRating(toPersist)
+      }
+    } catch {
+      case e: Exception => {
+        throw new IllegalArgumentException(s"Could not persist $userResponse and $videoResponse", e)
+      }
+    } finally {
+      context.stop(self)
     }
-    context.stop(self)
   }
   
   private def followLink(link: String): Option[String] = {
-    scalaj.http.Http(link)
-      .option(HttpOptions.followRedirects(true))
-      .method("GET")
-      .asBytes.location
+    try {
+      scalaj.http.Http(link)
+        .option(HttpOptions.followRedirects(true))
+        .method("GET")
+        .asBytes.location
+    } catch {
+      case e: IOException => {
+        throw new IllegalArgumentException(s"Could not resolve link $link", e)  
+      }
+    }
   }
 }
