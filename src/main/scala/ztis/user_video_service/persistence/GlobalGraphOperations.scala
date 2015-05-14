@@ -14,10 +14,14 @@ object GlobalGraphOperations extends UnitOfWork with StrictLogging {
   }
 
   def initializeDatabase(db: GraphDatabaseService,
-                         schemaInitializer: SchemaInitializer): Unit = {
+                         schemaInitializer: SchemaInitializer,
+                         metadataRepository: MetadataRepository): Unit = {
     logger.info("Initializing database")
 
     implicit val service = db
     schemaInitializer.initialize()
+    // Initializing metadata. Because Neo4j has READ_COMMITTED transaction isolation level
+    // there could be two instances of metadata nodes created from different actors 
+    unitOfWork(() => metadataRepository.metadata)
   }
 }

@@ -1,0 +1,104 @@
+package ztis.twitter
+
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.event.LoggingReceive
+import com.twitter.Extractor
+import ztis.cassandra.CassandraClient
+import ztis.twitter.TweetProcessorActor.ProcessTweet
+import ztis.user_video_service.UserServiceActor.{RegisterTwitterUser, TwitterUserRegistered}
+import ztis.user_video_service.VideoServiceActor.{RegisterVideos, Video, VideosRegistered}
+import ztis.{UserAndRating, UserOrigin, VideoOrigin}
+
+import scala.collection.JavaConverters._
+import scalaj.http.HttpOptions
+
+object TweetProcessorActor {
+
+  private case class ProcessTweet(tweet: Tweet)
+
+  private val extractor = new Extractor
+
+  private def extractLinks(tweet: Tweet): Vector[String] = {
+    val links = extractor.extractURLs(tweet.text())
+    links.asScala.toVector
+  }
+
+  def props(tweet: Tweet,
+            cassandraClient: CassandraClient,
+            userServiceActor: ActorRef,
+            videoServiceActor: ActorRef): Props = {
+    Props(classOf[TweetProcessorActor], tweet, cassandraClient, userServiceActor, videoServiceActor)
+  }
+}
+
+class TweetProcessorActor(tweet: Tweet,
+                          cassandraClient: CassandraClient,
+                          userServiceActor: ActorRef,
+                          videoServiceActor: ActorRef) extends Actor with ActorLogging {
+
+  self ! TweetProcessorActor.ProcessTweet(tweet)
+
+  private var userResponse: Option[TwitterUserRegistered] = None
+
+  private var videoResponse: Option[VideosRegistered] = None
+
+  override def receive: Receive = LoggingReceive {
+    case ProcessTweet(tweet) => {
+      val links = TweetProcessorActor.extractLinks(tweet)
+      val resolvedLinks = links.flatMap(followLink).map(java.net.URI.create(_))
+      val videos = resolvedLinks.flatMap { link =>
+        val origin: Option[VideoOrigin] = VideoOrigin.recognize(link.getHost)
+        origin.map(Video(_, link))
+      }
+
+      if (videos.nonEmpty) {
+        log.info(s"Extracted videos $videos from $resolvedLinks")
+        userServiceActor ! RegisterTwitterUser(tweet.userName(), tweet.userId())
+        videoServiceActor ! RegisterVideos(videos)
+      } else {
+        context.stop(self)
+      }
+    }
+    case response: TwitterUserRegistered => {
+      userResponse = Option(response)
+
+      if (bothResponsesReceived) {
+        processResponses()
+      }
+    }
+    case response: VideosRegistered => {
+      videoResponse = Option(response)
+
+      if (bothResponsesReceived) {
+        processResponses()
+      }
+    }
+  }
+
+  private def bothResponsesReceived: Boolean = {
+    userResponse.nonEmpty && videoResponse.nonEmpty
+  }
+
+  private def processResponses(): Unit = {
+    val userID = userResponse.get.internalUserID
+    val videoIDWithOrigin: Vector[(Int, Video)] = 
+      videoResponse.get.internalVideoIDs.zip(videoResponse.get.request.videos)
+
+    videoIDWithOrigin.foreach { videoInformation =>
+      val videoID = videoInformation._1
+      val videoOrigin = videoInformation._2.origin
+      val toPersist = 
+        UserAndRating(userID, UserOrigin.Twitter, videoID, videoOrigin, 1, 0)
+      
+      cassandraClient.updateRating(toPersist)
+    }
+    context.stop(self)
+  }
+  
+  private def followLink(link: String): Option[String] = {
+    scalaj.http.Http(link)
+      .option(HttpOptions.followRedirects(true))
+      .method("GET")
+      .asBytes.location
+  }
+}

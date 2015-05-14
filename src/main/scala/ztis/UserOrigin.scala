@@ -17,7 +17,7 @@ object UserOrigin {
     name.toLowerCase match {
       case "twitter" => Twitter
       case "movielens" => MovieLens
-      case _ => throw new IllegalArgumentException(s"Unrecognized origin $name")
+      case _ => throw new IllegalArgumentException(s"Unrecognized user origin $name")
     }  
   }
 }

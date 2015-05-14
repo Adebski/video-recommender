@@ -13,8 +13,10 @@ import scala.collection.JavaConverters._
 
 trait KafkaComponent extends StrictLogging {
   private val kryoInstantiator = (new KryoInstantiator).withRegistrar(new ZTISKryoRegistrar)
-  private val kryoPoolSize = 1
-  val kryo = KryoPool.withByteArrayOutputStream(kryoPoolSize, kryoInstantiator)
+
+  protected def kryoPool(numberOfInstances: Int): KryoPool = {
+    KryoPool.withByteArrayOutputStream(numberOfInstances, kryoInstantiator)
+  }
 
   private def configToProperties(config: Config, extra: Map[String, String] = Map.empty): Properties = {
     val properties = new Properties()

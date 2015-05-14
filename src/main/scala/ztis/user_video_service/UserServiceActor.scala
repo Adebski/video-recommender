@@ -10,7 +10,7 @@ import ztis.user_video_service.persistence.{Metadata, MetadataRepository, UnitOf
 
 object UserServiceActor {
 
-  case class RegisterTwitterUser(externalUserName: String, externalUserID: Int)
+  case class RegisterTwitterUser(externalUserName: String, externalUserID: Long)
 
   case class RegisterWykopUser(externalUserName: String)
 

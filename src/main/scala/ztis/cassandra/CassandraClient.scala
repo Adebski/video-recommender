@@ -2,12 +2,11 @@ package ztis.cassandra
 
 import com.datastax.driver.core.policies.RoundRobinPolicy
 import com.datastax.driver.core.{Cluster, ResultSet}
-import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import ztis.UserAndRating
 
 class CassandraClient(private[cassandra] val config: CassandraConfiguration) extends StrictLogging {
-  
+
   private val cluster = Cluster.builder().addContactPointsWithPorts(config.contactPoints)
     .withLoadBalancingPolicy(new RoundRobinPolicy)
     .build()
@@ -18,12 +17,15 @@ class CassandraClient(private[cassandra] val config: CassandraConfiguration) ext
   val preparedInsertToRatings = session.prepare(CassandraClient.insertToRatingsQuery(config.keyspace, config.ratingsTableName))
 
   def updateRating(userAndRating: UserAndRating): Unit = {
+    val userID: java.lang.Integer = userAndRating.userID
+    val videoID: java.lang.Integer = userAndRating.videoID
     val rating: java.lang.Integer = userAndRating.rating
     val timesUpvotedByFriends: java.lang.Integer = userAndRating.timesUpvotedByFriends
 
-    val statement = preparedInsertToRatings.bind(userAndRating.userName,
-      userAndRating.origin.name,
-      userAndRating.link,
+    val statement = preparedInsertToRatings.bind(userID,
+      userAndRating.userOrigin.name,
+      videoID,
+      userAndRating.videoOrigin.toString,
       rating,
       timesUpvotedByFriends)
     session.execute(statement)
@@ -62,17 +64,18 @@ object CassandraClient {
   def createRatingsTableQuery(keyspace: String, tableName: String): String =
     s"""
        |CREATE TABLE IF NOT EXISTS "$keyspace"."$tableName" (
-                                                            |"user_id" text,
+                                                            |"user_id" int,
                                                             |"user_origin" text,
-                                                            |"link" text,
+                                                            |"video_id" int,
+                                                            |"video_origin" text,
                                                             |"rating" int,
                                                             |"timesUpvotedByFriends" int,
-                                                            |PRIMARY KEY(("user_id", "user_origin"), "link"))
+                                                            |PRIMARY KEY(("user_id", "user_origin"), "video_id", "video_origin"))
      """.stripMargin
 
   def insertToRatingsQuery(keyspace: String, tableName: String): String =
     s"""
-       |INSERT INTO "$keyspace"."$tableName" ("user_id", "user_origin", "link", "rating", "timesUpvotedByFriends") VALUES (?, ?, ?, ?, ?)
+       |INSERT INTO "$keyspace"."$tableName" ("user_id", "user_origin", "video_id", "video_origin", "rating", "timesUpvotedByFriends") VALUES (?, ?, ?, ?, ?, ?)
      """.stripMargin
 
   def selectAll(keyspace: String, tableName: String): String = {

@@ -21,9 +21,22 @@ object VideoOrigin {
     }
   }
   
-  val Origins = Set(Vimeo, YouTube)
+  case object MovieLens extends VideoOrigin {
+    override def matches(host: String): Boolean = false
+  }
   
-  def isKnownOrigin(host: String): Boolean = {
-    Origins.exists(_.matches(host))
+  val Origins = Set(Vimeo, YouTube, MovieLens)
+  
+  def recognize(host: String): Option[VideoOrigin] = {
+    Origins.filter(_.matches(host)).headOption
+  }
+  
+  def fromString(name: String): VideoOrigin = {
+    name.toLowerCase match {
+      case "youtube" => YouTube
+      case "viemo" => Vimeo
+      case "movielens" => MovieLens
+      case _ => throw new IllegalArgumentException(s"Unrecognized video origin $name")
+    }
   }
 }

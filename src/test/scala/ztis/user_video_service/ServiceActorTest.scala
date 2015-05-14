@@ -16,9 +16,8 @@ abstract class ServiceActorTest
   val metadataRepository = new MetadataRepository(graphDb)
   val schemaInitializer = new SchemaInitializer(graphDb, Option(10.seconds))
 
-
   before {
     GlobalGraphOperations.cleanDatabase(graphDb)
-    GlobalGraphOperations.initializeDatabase(graphDb, schemaInitializer)
+    GlobalGraphOperations.initializeDatabase(graphDb, schemaInitializer, metadataRepository)
   }
 }

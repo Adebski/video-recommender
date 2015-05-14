@@ -1,11 +1,12 @@
 package ztis
 
-case class UserAndRating(userName: String,
-                         origin: UserOrigin,
-                         link: String,
+case class UserAndRating(userID: Int,
+                         userOrigin: UserOrigin,
+                         videoID: Int,
+                         videoOrigin: VideoOrigin,
                          rating: Int,
                          timesUpvotedByFriends: Int) {
-  def toTuple: (String, String, String, Int, Int) = {
-    (userName, origin.name, link, rating, timesUpvotedByFriends)
+  def toTuple: (Int, String, Int, String, Int, Int) = {
+    (userID, userOrigin.name, videoID, videoOrigin.toString, rating, timesUpvotedByFriends)
   }
 }
