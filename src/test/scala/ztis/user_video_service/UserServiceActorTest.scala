@@ -1,21 +1,11 @@
 package ztis.user_video_service
 
-import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, TestKit}
-import com.typesafe.config.ConfigFactory
-import org.neo4j.test.TestGraphDatabaseFactory
-import org.scalatest.{BeforeAndAfter, WordSpecLike}
+import ztis.user_video_service.ServiceActorMessages.{NextInternalIDRequest, NextInternalIDResponse}
 import ztis.user_video_service.UserServiceActor._
 import ztis.user_video_service.persistence._
 
-import scala.concurrent.duration._
-
-class UserServiceActorTest extends TestKit(ActorSystem("test-system", ConfigFactory.load("akka"))) with ImplicitSender with WordSpecLike with BeforeAndAfter {
-  val graphDb = new TestGraphDatabaseFactory().newImpermanentDatabase();
-  val metadataRepository = new MetadataRepository(graphDb)
+class UserServiceActorTest extends ServiceActorTest {
   val userRepository = new UserRepository(graphDb)
-  val schemaInitializer = new SchemaInitializer(graphDb, Option(10.seconds))
-  var a = 2
 
   "UserServiceActor" should {
     "return initial nextInternalID value" in {
@@ -71,10 +61,5 @@ class UserServiceActorTest extends TestKit(ActorSystem("test-system", ConfigFact
       val response = expectMsgClass(classOf[NextInternalIDResponse])
       assert(response.nextInternalID == 3)
     }
-  }
-
-  before {
-    GlobalGraphOperations.cleanDatabase(graphDb)
-    GlobalGraphOperations.initializeDatabase(graphDb, schemaInitializer)
   }
 }

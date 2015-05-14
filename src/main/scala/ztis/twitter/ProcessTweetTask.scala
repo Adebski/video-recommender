@@ -2,7 +2,7 @@ package ztis.twitter
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import ztis.cassandra.CassandraClient
-import ztis.{UserAndRating, UserOrigin}
+import ztis.{VideoOrigin, UserAndRating, UserOrigin}
 
 import scalaj.http.HttpOptions
 
@@ -12,7 +12,7 @@ class ProcessTweetTask(cassandraClient: CassandraClient, tweet: Tweet) extends R
     val links = TweetURLExtractor.extractLinks(tweet)
 
     val resolvedLinks = links.flatMap(followLink).map(java.net.URI.create(_))
-    val videoLinks = resolvedLinks.filter(link => ProcessTweetTask.AcceptedDomains.contains(link.getHost))
+    val videoLinks = resolvedLinks.filter(link => VideoOrigin.isKnownOrigin(link.getHost))
     if (videoLinks.nonEmpty) {
       logger.info("Extracted video links " + videoLinks + " from " + resolvedLinks)
       resolvedLinks.foreach(persist)
@@ -36,8 +36,4 @@ class ProcessTweetTask(cassandraClient: CassandraClient, tweet: Tweet) extends R
     
     cassandraClient.updateRating(userAndRating)
   }
-}
-
-object ProcessTweetTask {
-  val AcceptedDomains = Vector("youtube.com", "vimeo.com", "www.youtube.com", "www.vimeo.com")
 }

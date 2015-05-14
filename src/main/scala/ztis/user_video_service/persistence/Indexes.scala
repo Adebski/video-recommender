@@ -1,19 +1,17 @@
 package ztis.user_video_service.persistence
 
+import ztis.user_video_service.FieldNames
+
 object Indexes {
-  
-  val ExternalUserID = "externalUserID"
-  val ExternalUserName = "externalUserName"
-  val InternalUserID = "internalUserID"
-  val LookupField = "lookupField"
-  val NextInternalID = "nextInternalID"
-  
-  val TwitterUserExternalUserID = IndexDefinition("TwitterUser", ExternalUserID)
-  val TwitterUserExternalUserName = IndexDefinition("TwitterUser", ExternalUserName)
-  val TwitterUserInternalUserID = IndexDefinition("TwitterUser", InternalUserID)
-  val WykopUserExternalUserName = IndexDefinition("WykopUser", ExternalUserName)
-  val WykopUserInternalUserID = IndexDefinition("WykopUser", InternalUserID)
-  val MetadataLookupField = IndexDefinition("Metadata", LookupField)
+  val TwitterUserExternalUserID = IndexDefinition("TwitterUser", FieldNames.ExternalUserID)
+  val TwitterUserExternalUserName = IndexDefinition("TwitterUser", FieldNames.ExternalUserName)
+  val TwitterUserInternalUserID = IndexDefinition("TwitterUser", FieldNames.InternalUserID)
+  val WykopUserExternalUserName = IndexDefinition("WykopUser", FieldNames.ExternalUserName)
+  val WykopUserInternalUserID = IndexDefinition("WykopUser", FieldNames.InternalUserID)
+  val NextUserInternalIDNodeLookupField = IndexDefinition("nextUserInternalID", FieldNames.LookupField)
+  val NextVideoInternalIDNodeLookupField = IndexDefinition("nextVideoInternalID", FieldNames.LookupField)
+  val VideoOrigin = IndexDefinition("Video", FieldNames.VideoOrigin)
+  val VideoLink = IndexDefinition("Video", FieldNames.VideoLink)
   
   val definitions: Vector[IndexDefinition] = Vector(
     TwitterUserExternalUserID,
@@ -21,6 +19,9 @@ object Indexes {
     TwitterUserInternalUserID,
     WykopUserExternalUserName,
     WykopUserInternalUserID,
-    MetadataLookupField
+    NextUserInternalIDNodeLookupField,
+    NextVideoInternalIDNodeLookupField,
+    VideoOrigin,
+    VideoLink
   )
 }

@@ -2,7 +2,9 @@ package ztis.user_video_service
 
 import akka.actor.Status.Failure
 import akka.actor.{Actor, ActorLogging, Props}
+import akka.event.LoggingReceive
 import org.neo4j.graphdb.GraphDatabaseService
+import ztis.user_video_service.ServiceActorMessages.{NextInternalIDResponse, NextInternalIDRequest}
 import ztis.user_video_service.UserServiceActor._
 import ztis.user_video_service.persistence.{Metadata, MetadataRepository, UnitOfWork, UserRepository}
 
@@ -15,10 +17,6 @@ object UserServiceActor {
   case class TwitterUserRegistered(internalUserID: Int, request: RegisterTwitterUser)
 
   case class WykopUserRegistered(internalUserID: Int, request: RegisterWykopUser)
-
-  case object NextInternalIDRequest
-
-  case class NextInternalIDResponse(nextInternalID: Int)
 
   def props(graphDatabaseService: GraphDatabaseService,
             userRepository: UserRepository,
@@ -33,7 +31,7 @@ class UserServiceActor(graphDatabaseService: GraphDatabaseService,
 
   private implicit val _service = graphDatabaseService
 
-  private var nextInternalID: Int = fetchMetadata.nextInternalID
+  private var nextInternalID: Int = fetchMetadata.nextUserInternalID
 
   private var tempNextInternalID: Int = nextInternalID
 
@@ -43,7 +41,7 @@ class UserServiceActor(graphDatabaseService: GraphDatabaseService,
     }
   }
 
-  override def receive: Receive = {
+  override def receive: Receive = LoggingReceive {
     case NextInternalIDRequest => {
       sender() ! NextInternalIDResponse(nextInternalID)
     }
@@ -77,7 +75,7 @@ class UserServiceActor(graphDatabaseService: GraphDatabaseService,
 
     if (response.internalUserID == tempNextInternalID) {
       tempNextInternalID += 1
-      metadataRepository.updateNextInternalID(tempNextInternalID)
+      metadataRepository.updateNextUserInternalID(tempNextInternalID)
     }
 
     response
@@ -88,7 +86,7 @@ class UserServiceActor(graphDatabaseService: GraphDatabaseService,
 
     if (response.internalUserID == tempNextInternalID) {
       tempNextInternalID += 1
-      metadataRepository.updateNextInternalID(tempNextInternalID)
+      metadataRepository.updateNextUserInternalID(tempNextInternalID)
     }
 
     response

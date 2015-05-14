@@ -2,6 +2,7 @@ package ztis.user_video_service.persistence
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.neo4j.graphdb.{GraphDatabaseService, Node}
+import ztis.user_video_service.FieldNames
 import ztis.user_video_service.UserServiceActor.{RegisterTwitterUser, RegisterWykopUser, TwitterUserRegistered, WykopUserRegistered}
 
 /**
@@ -19,15 +20,15 @@ class UserRepository(graphDatabaseService: GraphDatabaseService) extends StrictL
     val node = Option(graphDatabaseService.findNode(index.label, index.property, request.externalUserID))
       .getOrElse(createTwitterUser(index, request, internalID))
 
-    TwitterUserRegistered(node.getProperty(Indexes.InternalUserID).asInstanceOf[Int], request)
+    TwitterUserRegistered(node.getProperty(FieldNames.InternalUserID).asInstanceOf[Int], request)
   }
 
   private def createTwitterUser(index: IndexDefinition, request: RegisterTwitterUser, internalID: Int): Node = {
     val node = graphDatabaseService.createNode(index.label)
 
-    node.setProperty(Indexes.ExternalUserID, request.externalUserID)
-    node.setProperty(Indexes.ExternalUserName, request.externalUserName)
-    node.setProperty(Indexes.InternalUserID, internalID)
+    node.setProperty(FieldNames.ExternalUserID, request.externalUserID)
+    node.setProperty(FieldNames.ExternalUserName, request.externalUserName)
+    node.setProperty(FieldNames.InternalUserID, internalID)
 
     node
   }
@@ -39,14 +40,14 @@ class UserRepository(graphDatabaseService: GraphDatabaseService) extends StrictL
     val node = Option(graphDatabaseService.findNode(index.label, index.property, request.externalUserName))
       .getOrElse(createWykopUser(index, request, internalID))
 
-    WykopUserRegistered(node.getProperty(Indexes.InternalUserID).asInstanceOf[Int], request)
+    WykopUserRegistered(node.getProperty(FieldNames.InternalUserID).asInstanceOf[Int], request)
   }
 
   private def createWykopUser(index: IndexDefinition, request: RegisterWykopUser, internalID: Int): Node = {
     val node = graphDatabaseService.createNode(index.label)
 
-    node.setProperty(Indexes.ExternalUserName, request.externalUserName)
-    node.setProperty(Indexes.InternalUserID, internalID)
+    node.setProperty(FieldNames.ExternalUserName, request.externalUserName)
+    node.setProperty(FieldNames.InternalUserID, internalID)
 
     node
   }
