@@ -34,7 +34,7 @@ object VideoOrigin {
   def fromString(name: String): VideoOrigin = {
     name.toLowerCase match {
       case "youtube" => YouTube
-      case "viemo" => Vimeo
+      case "vimeo" => Vimeo
       case "movielens" => MovieLens
       case _ => throw new IllegalArgumentException(s"Unrecognized video origin $name")
     }

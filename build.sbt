@@ -66,6 +66,8 @@ libraryDependencies ++= {
   )
 }
 
+libraryDependencies += "org.mockito" % "mockito-all" % "1.10.19" % "test"
+
 parallelExecution in Test := false
 
 net.virtualvoid.sbt.graph.Plugin.graphSettings

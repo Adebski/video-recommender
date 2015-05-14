@@ -6,18 +6,21 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.event.LoggingReceive
 import com.twitter.Extractor
 import ztis.cassandra.CassandraClient
-import ztis.twitter.TweetProcessorActor.ProcessTweet
+import ztis.twitter.TweetProcessorActor.{Timeout, ProcessTweet}
 import ztis.user_video_service.UserServiceActor.{RegisterTwitterUser, TwitterUserRegistered}
 import ztis.user_video_service.VideoServiceActor.{RegisterVideos, Video, VideosRegistered}
 import ztis.{UserAndRating, UserOrigin, VideoOrigin}
 
 import scala.collection.JavaConverters._
+import scala.concurrent.duration.FiniteDuration
 import scalaj.http.HttpOptions
 
 object TweetProcessorActor {
 
   private case class ProcessTweet(tweet: Tweet)
 
+  private case object Timeout
+  
   private val extractor = new Extractor
 
   private def extractLinks(tweet: Tweet): Vector[String] = {
@@ -26,14 +29,16 @@ object TweetProcessorActor {
   }
 
   def props(tweet: Tweet,
+            timeout: FiniteDuration,
             cassandraClient: CassandraClient,
             userServiceActor: ActorRef,
             videoServiceActor: ActorRef): Props = {
-    Props(classOf[TweetProcessorActor], tweet, cassandraClient, userServiceActor, videoServiceActor)
+    Props(classOf[TweetProcessorActor], tweet, timeout, cassandraClient, userServiceActor, videoServiceActor)
   }
 }
 
 class TweetProcessorActor(tweet: Tweet,
+                          timeout: FiniteDuration,
                           cassandraClient: CassandraClient,
                           userServiceActor: ActorRef,
                           videoServiceActor: ActorRef) extends Actor with ActorLogging {
@@ -57,6 +62,7 @@ class TweetProcessorActor(tweet: Tweet,
         log.info(s"Extracted videos $videos from $resolvedLinks that were resolved from $links")
         userServiceActor ! RegisterTwitterUser(tweet.userName(), tweet.userId())
         videoServiceActor ! RegisterVideos(videos)
+        scheduleTimeout()
       } else {
         context.stop(self)
       }
@@ -116,5 +122,10 @@ class TweetProcessorActor(tweet: Tweet,
         throw new IllegalArgumentException(s"Could not resolve link $link", e)  
       }
     }
+  }
+
+  private def scheduleTimeout(): Unit = {
+    import context.dispatcher
+    context.system.scheduler.scheduleOnce(timeout, self, Timeout)
   }
 }

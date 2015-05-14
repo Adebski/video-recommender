@@ -1,27 +1,29 @@
 package ztis.wykop
 
+import akka.actor.ActorSystem
+import akka.cluster.Cluster
+import akka.routing.FromConfig
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import ztis.Spark
+import ztis.cassandra.{CassandraClient, CassandraConfiguration}
 
 object WykopStreamApp extends App with StrictLogging {
-  try {
-    val config = ConfigFactory.load("wykop")
-    val topic = config.getString("wykop.topic")
-    val api = new WykopAPI(config)
-    val receiver = new WykopSparkReceiver(config, api)
-    val ssc = Spark.streamingContext(conf = Spark.baseConfiguration("wykop-stream"))
+  val config = ConfigFactory.load("wykop")
+  val system = ActorSystem("ClusterSystem", config)
+  val api = new WykopAPI(config)
+  val cassandraConfig = CassandraConfiguration(config)
+  val cassandraClient = new CassandraClient(cassandraConfig)
 
-    val entries = ssc.receiverStream(receiver)
+  val cluster = Cluster(system).registerOnMemberUp {
+    logger.info("Creating WykopScrapperActor")
+    val userServiceRouter = createRouter("user-service-router")
+    val videoServiceRouter = createRouter("video-service-router")
+    val wykopScrapperActor =
+      system.actorOf(WykopScrapperActor.props(api, cassandraClient, userServiceActor = userServiceRouter, videoServiceActor = videoServiceRouter), "tweet-processor-actor-supervisor")
+  }
+  
 
-    WykopSparkTransformations.pushToKafka(entries, topic)
-
-    ssc.start()
-    //ssc.awaitTerminationOrTimeout(1.minute.toMillis)
-    ssc.awaitTermination()
-    ssc.stop()
-
-  } catch {
-    case e: Exception => logger.error("Error during wykop streaming", e)
+  def createRouter(routerName: String) = {
+    system.actorOf(FromConfig.props(), name = routerName)
   }
 }
