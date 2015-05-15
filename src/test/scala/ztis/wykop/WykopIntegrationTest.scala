@@ -13,6 +13,11 @@ import ztis.{UserAndRating, UserOrigin, VideoOrigin}
 
 import scala.concurrent.duration._
 
+/*
+This test may not pass due to timing. The thing is that we are creating separate actor for processing each entry 
+Because we have one entry from main page and second one from upcoming page it is possible that 
+the entry from upcoming page will be processed before entry from main page.
+ */
 class WykopIntegrationTest extends FlatSpec with BeforeAndAfterAll with MockitoSugar {
 
   val mainPageEntries = Vector(EntriesFixture.firstVideoEntry)

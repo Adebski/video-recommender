@@ -1,6 +1,6 @@
 package ztis.wykop
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor._
 import akka.event.LoggingReceive
 import ztis.cassandra.CassandraClient
 import ztis.user_video_service.UserServiceActor.{RegisterWykopUser, WykopUserRegistered}
@@ -37,6 +37,8 @@ class VideoEntryProcessorActor(entry: VideoEntry,
 
   private var videoResponse: Option[VideosRegistered] = None
 
+  private var timeoutMessage: Option[Cancellable] = None
+  
   override def receive: Receive = LoggingReceive {
     case ProcessEntry(entry) => {
       userServiceActor ! RegisterWykopUser(entry.userName)
@@ -78,6 +80,7 @@ class VideoEntryProcessorActor(entry: VideoEntry,
         throw new IllegalArgumentException(s"Could not persist $userResponse and $videoResponse", e)
       }
     } finally {
+      timeoutMessage.foreach(_.cancel())
       context.stop(self)
     }
   }
@@ -88,6 +91,6 @@ class VideoEntryProcessorActor(entry: VideoEntry,
 
   private def scheduleTimeout(): Unit = {
     import context.dispatcher
-    context.system.scheduler.scheduleOnce(timeout, self, Timeout)
+    timeoutMessage = Some(context.system.scheduler.scheduleOnce(timeout, self, Timeout))
   }
 }

@@ -2,11 +2,11 @@ package ztis.twitter
 
 import java.io.IOException
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor._
 import akka.event.LoggingReceive
 import com.twitter.Extractor
 import ztis.cassandra.CassandraClient
-import ztis.twitter.TweetProcessorActor.{Timeout, ProcessTweet}
+import ztis.twitter.TweetProcessorActor.{ProcessTweet, Timeout}
 import ztis.user_video_service.UserServiceActor.{RegisterTwitterUser, TwitterUserRegistered}
 import ztis.user_video_service.VideoServiceActor.{RegisterVideos, Video, VideosRegistered}
 import ztis.{UserAndRating, UserOrigin, VideoOrigin}
@@ -20,7 +20,7 @@ object TweetProcessorActor {
   private case class ProcessTweet(tweet: Tweet)
 
   private case object Timeout
-  
+
   private val extractor = new Extractor
 
   private def extractLinks(tweet: Tweet): Vector[String] = {
@@ -48,6 +48,8 @@ class TweetProcessorActor(tweet: Tweet,
   private var userResponse: Option[TwitterUserRegistered] = None
 
   private var videoResponse: Option[VideosRegistered] = None
+
+  private var timeoutMessage: Option[Cancellable] = None
 
   override def receive: Receive = LoggingReceive {
     case ProcessTweet(tweet) => {
@@ -98,7 +100,7 @@ class TweetProcessorActor(tweet: Tweet,
         val videoOrigin = videoInformation._2.origin
         val toPersist =
           UserAndRating(userID, UserOrigin.Twitter, videoID, videoOrigin, 1, 0)
-        
+
         log.info(s"Persisting $toPersist")
         cassandraClient.updateRating(toPersist)
       }
@@ -107,10 +109,11 @@ class TweetProcessorActor(tweet: Tweet,
         throw new IllegalArgumentException(s"Could not persist $userResponse and $videoResponse", e)
       }
     } finally {
+      timeoutMessage.foreach(_.cancel())
       context.stop(self)
     }
   }
-  
+
   private def followLink(link: String): Option[String] = {
     try {
       scalaj.http.Http(link)
@@ -119,13 +122,15 @@ class TweetProcessorActor(tweet: Tweet,
         .asBytes.location
     } catch {
       case e: IOException => {
-        throw new IllegalArgumentException(s"Could not resolve link $link", e)  
+        throw new IllegalArgumentException(s"Could not resolve link $link", e)
       }
+    } finally {
+      timeoutMessage.foreach(_.cancel())
     }
   }
 
   private def scheduleTimeout(): Unit = {
     import context.dispatcher
-    context.system.scheduler.scheduleOnce(timeout, self, Timeout)
+    timeoutMessage = Some(context.system.scheduler.scheduleOnce(timeout, self, Timeout))
   }
 }

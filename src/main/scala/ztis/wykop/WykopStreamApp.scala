@@ -19,7 +19,7 @@ object WykopStreamApp extends App with StrictLogging {
     val userServiceRouter = createRouter("user-service-router")
     val videoServiceRouter = createRouter("video-service-router")
     val wykopScrapperActor =
-      system.actorOf(WykopScrapperActor.props(api, cassandraClient, userServiceActor = userServiceRouter, videoServiceActor = videoServiceRouter), "tweet-processor-actor-supervisor")
+      system.actorOf(WykopScrapperActor.props(api, cassandraClient, userServiceActor = userServiceRouter, videoServiceActor = videoServiceRouter), "wykop-scrapper-actor")
   }
   
 

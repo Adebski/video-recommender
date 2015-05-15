@@ -13,7 +13,7 @@ class KafkaConsumer(config: Config) extends KafkaComponent {
   private val consumer = Consumer.create(consumerConfig(config))
 
   def subscribe[T](numberOfThreads: Int, topic: String, clazz: Class[T], onMessage: T => Unit) = {
-    logger.info(s"Subscribing on $numberOfThreads to $topic")
+    logger.info(s"Subscribing on $numberOfThreads thread to $topic")
     val filterSpec = new Whitelist(topic)
     val executor = Executors.newFixedThreadPool(numberOfThreads)
     val streams: Seq[KafkaStream[Array[Byte], Array[Byte]]] = consumer.createMessageStreamsByFilter(filterSpec, numberOfThreads, new DefaultDecoder(), new DefaultDecoder())
