@@ -1,8 +1,12 @@
 package ztis.user_video_service.persistence
 
+import java.net.URI
+
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.neo4j.graphdb.{GraphDatabaseService, Node}
+import ztis.VideoOrigin
 import ztis.user_video_service.FieldNames
+import ztis.user_video_service.UserVideoServiceQueryActor.VideoExternalInformationRequest
 import ztis.user_video_service.VideoServiceActor.{Video, RegisterVideos, VideosRegistered}
 
 class VideoRepository(graphDatabaseService: GraphDatabaseService) extends StrictLogging {
@@ -25,6 +29,20 @@ class VideoRepository(graphDatabaseService: GraphDatabaseService) extends Strict
     (updatedNextInternalID, VideosRegistered(videoIDs, request))
   }
 
+  def getVideo(request: VideoExternalInformationRequest): Option[Video] = {
+    val index = Indexes.VideoInternalID
+    val node = Option(graphDatabaseService.findNode(index.label, index.property, request.internalVideoID))
+    
+    node.map(nodeToVideo)
+  }
+  
+  private def nodeToVideo(node: Node): Video ={
+    val origin = VideoOrigin.fromString(node.getProperty(FieldNames.VideoOrigin).asInstanceOf[String])
+    val uri = URI.create(node.getProperty(FieldNames.VideoLink).asInstanceOf[String])
+    
+    Video(origin, uri)
+  }
+  
   private def getOrCreateVideo(video: Video, nextInternalID: Int): Node = {
     val node = Option(graphDatabaseService.findNode(Indexes.VideoLink.label, Indexes.VideoLink.property, video.uri.toString))
       .getOrElse(createNode(video, nextInternalID))

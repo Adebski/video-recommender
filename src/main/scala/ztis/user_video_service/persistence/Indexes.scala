@@ -12,6 +12,7 @@ object Indexes {
   val NextVideoInternalIDNodeLookupField = IndexDefinition("nextVideoInternalID", FieldNames.LookupField)
   val VideoOrigin = IndexDefinition("Video", FieldNames.VideoOrigin)
   val VideoLink = IndexDefinition("Video", FieldNames.VideoLink)
+  val VideoInternalID = IndexDefinition("Video", FieldNames.InternalVideoID)
   
   val definitions: Vector[IndexDefinition] = Vector(
     TwitterUserExternalUserID,
@@ -22,6 +23,7 @@ object Indexes {
     NextUserInternalIDNodeLookupField,
     NextVideoInternalIDNodeLookupField,
     VideoOrigin,
-    VideoLink
+    VideoLink,
+    VideoInternalID
   )
 }

@@ -29,6 +29,20 @@ class UserRepository(graphDatabaseService: GraphDatabaseService) extends StrictL
     (updatedNextInternalID, TwitterUserRegistered(internalUserID, request))
   }
 
+  def getTwitterUser(externalUserName: String): Option[Int] = {
+    getInternalUserID(Indexes.TwitterUserExternalUserName, externalUserName)
+  }
+  
+  def getWykopUser(externalUserName: String): Option[Int] = {
+    getInternalUserID(Indexes.WykopUserExternalUserName, externalUserName)
+  }
+  
+  private def getInternalUserID(lookupIndex: IndexDefinition, externalUserName: String): Option[Int] = {
+    val node = Option(graphDatabaseService.findNode(lookupIndex.label, lookupIndex.property, externalUserName))
+
+    node.map(_.getProperty(FieldNames.InternalUserID).asInstanceOf[Int])
+  }
+  
   private def createTwitterUser(index: IndexDefinition, request: RegisterTwitterUser, internalID: Int): Node = {
     val node = graphDatabaseService.createNode(index.label)
 

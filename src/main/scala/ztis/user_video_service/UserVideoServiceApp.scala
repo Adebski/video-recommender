@@ -18,11 +18,13 @@ object UserVideoServiceApp extends App with StrictLogging {
   val metadataRepository = new MetadataRepository(graphDb)
 
   GlobalGraphOperations.initializeDatabase(graphDb, schemaInitializer, metadataRepository)
-
+  
   val cluster = Cluster(system).registerOnMemberUp {
     logger.info("Starting actor for servicing user requests")
-    system.actorOf(UserServiceActor.props(graphDb, userRepository, metadataRepository), "user-service-actor")
+    system.actorOf(UserServiceActor.props(graphDb, userRepository, metadataRepository).withDispatcher("service-actors-dispatcher"), "user-service-actor")
     logger.info("Starting actor for servicing video requests")
-    system.actorOf(VideoServiceActor.props(graphDb, videoRepository, metadataRepository), "video-service-actor")
+    system.actorOf(VideoServiceActor.props(graphDb, videoRepository, metadataRepository).withDispatcher("service-actors-dispatcher"), "video-service-actor")
+    logger.info("Starting actor that responds to internal id queries")
+    system.actorOf(UserVideoServiceQueryActor.props(graphDb, userRepository, videoRepository).withDispatcher("service-actors-dispatcher"), "user-video-service-query-actor")
   }
 }
