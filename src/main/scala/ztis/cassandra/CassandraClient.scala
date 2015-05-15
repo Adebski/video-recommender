@@ -23,7 +23,7 @@ class CassandraClient(private[cassandra] val config: CassandraConfiguration) ext
     val timesUpvotedByFriends: java.lang.Integer = userAndRating.timesUpvotedByFriends
 
     val statement = preparedInsertToRatings.bind(userID,
-      userAndRating.userOrigin.name,
+      userAndRating.userOrigin.toString,
       videoID,
       userAndRating.videoOrigin.toString,
       rating,

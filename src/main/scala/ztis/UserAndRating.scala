@@ -7,6 +7,6 @@ case class UserAndRating(userID: Int,
                          rating: Int,
                          timesUpvotedByFriends: Int) {
   def toTuple: (Int, String, Int, String, Int, Int) = {
-    (userID, userOrigin.name, videoID, videoOrigin.toString, rating, timesUpvotedByFriends)
+    (userID, userOrigin.toString, videoID, videoOrigin.toString, rating, timesUpvotedByFriends)
   }
 }

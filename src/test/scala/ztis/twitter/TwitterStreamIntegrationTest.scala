@@ -64,6 +64,9 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
   override def beforeAll(): Unit = {
     GlobalGraphOperations.cleanDatabase(graphDb)
     GlobalGraphOperations.initializeDatabase(graphDb, schemaInitializer, metadataRepository)
+    TopicCommand.main(Array("--zookeeper",
+      tweetProcessorConfig.getString("consumer.zookeeper.connect"),
+      "--create", "--topic", testTopic, "--partitions", "1", "--replication-factor", "1"))
   }
   
   override def afterAll(): Unit = {
