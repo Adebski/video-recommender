@@ -44,6 +44,12 @@ libraryDependencies += "com.datastax.cassandra" % "cassandra-driver-core" % "2.1
 
 libraryDependencies += "com.fasterxml.jackson.core" % "jackson-core" % "2.5.2"
 
+libraryDependencies += "org.neo4j" % "neo4j" % Versions.neo4j
+
+libraryDependencies +=  "org.neo4j" % "neo4j-kernel" % Versions.neo4j % "test" classifier "tests"
+
+libraryDependencies +=  "org.neo4j" % "neo4j-io" % Versions.neo4j % "test" classifier "tests"
+
 libraryDependencies ++= {
   Seq(
     "io.spray"            %%  "spray-can"     % Versions.spray,
@@ -55,9 +61,12 @@ libraryDependencies ++= {
 libraryDependencies ++= {
   Seq(
     "com.typesafe.akka"   %%  "akka-actor"    % Versions.akka,
+    "com.typesafe.akka" %% "akka-cluster" % Versions.akka,
     "com.typesafe.akka"   %%  "akka-testkit"  % Versions.akka   % "test"
   )
 }
+
+libraryDependencies += "org.mockito" % "mockito-all" % "1.10.19" % "test"
 
 parallelExecution in Test := false
 

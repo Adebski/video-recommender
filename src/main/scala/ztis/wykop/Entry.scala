@@ -1,3 +1,5 @@
 package ztis.wykop
 
-case class Entry(author: String, link: String)
+import java.net.URI
+
+case class Entry(author: String, link: URI)

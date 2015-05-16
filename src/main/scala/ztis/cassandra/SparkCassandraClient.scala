@@ -5,31 +5,26 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.spark.mllib.recommendation.{MatrixFactorizationModel, Rating}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import ztis.{UserAndRating, UserOrigin}
+import ztis.{VideoOrigin, UserAndRating, UserOrigin}
 
 class SparkCassandraClient(val client: CassandraClient, val sparkContext: SparkContext) extends StrictLogging {
 
   type FeaturesRDD = RDD[(Int, Array[Double])]
 
-  private val columns = SomeColumns("user_id", "user_origin", "link", "rating", "timesUpvotedByFriends")
+  private val columns = SomeColumns("user_id", "user_origin", "video_id", "video_origin", "rating", "timesUpvotedByFriends")
 
   def userAndRatingsRDD: RDD[UserAndRating] = {
     sparkContext.cassandraTable(client.config.keyspace, client.config.ratingsTableName).map { row =>
-      val userId = row.getString("user_id")
-      val origin = UserOrigin.fromString(row.getString("user_origin"))
-      val link = row.getString("link")
+      val userId = row.getInt("user_id")
+      val userOrigin = UserOrigin.fromString(row.getString("user_origin"))
+      val videoID = row.getInt("video_id")
+      val videoOrigin = VideoOrigin.fromString(row.getString("video_origin"))
       val rating = row.getInt("rating")
       val timesUpvotedByFriends = row.getInt("timesUpvotedByFriends")
 
-      UserAndRating(userId, origin, link, rating, timesUpvotedByFriends)
+      UserAndRating(userId, userOrigin, videoID, videoOrigin, rating, timesUpvotedByFriends)
     }
   }
-
-  /*
-  TODO - #16. Here we are assuming that username and link are represented as ints - that may not be true. 
-  When the data is pulled from Wykop/Twitter links are represented as text and user ids may be textual (wykop) or 
-  integers (twitter) - for now this will only work when data is pulled from movielens database. 
- */
 
   def ratingsRDD: RDD[Rating] = {
     sparkContext.cassandraTable(client.config.keyspace, client.config.ratingsTableName).map { row =>

@@ -6,7 +6,7 @@ import java.net.URL
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import ztis.cassandra.{CassandraConfiguration, CassandraClient, SparkCassandraClient}
-import ztis.{Spark, UserAndRating, UserOrigin}
+import ztis.{VideoOrigin, Spark, UserAndRating, UserOrigin}
 
 import scala.language.postfixOps
 import scala.sys.process._
@@ -42,9 +42,10 @@ object MovieLensDataLoader extends App with StrictLogging {
 
   private def toUserAndRating(line: String): UserAndRating = {
     val fields = line.split("::")
-    UserAndRating(userName = fields(0),
+    UserAndRating(userID = fields(0).toInt,
       UserOrigin.MovieLens,
-      link = fields(1),
+      videoID = fields(1).toInt,
+      VideoOrigin.MovieLens,
       rating = fields(2).toInt,
       timesUpvotedByFriends = 0)
   }

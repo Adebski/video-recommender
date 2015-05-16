@@ -1,7 +1,7 @@
-package ztis
+package ztis.cassandra
 
 import com.datastax.driver.core.Row
-import ztis.cassandra.CassandraClient
+import ztis.{UserAndRating, UserOrigin, VideoOrigin}
 
 import scala.collection.JavaConverters._
 
@@ -15,13 +15,14 @@ class UserAndRatingRepository(client: CassandraClient) {
   }
         
   private def toUserAndRating(row: Row): UserAndRating = {
-    val userName = row.getString("user_id")
-    val origin = UserOrigin.fromString(row.getString("user_origin"))
-    val link = row.getString("link")
+    val userId = row.getInt("user_id")
+    val userOrigin = UserOrigin.fromString(row.getString("user_origin"))
+    val videoID = row.getInt("video_id")
+    val videoOrigin = VideoOrigin.fromString(row.getString("video_origin"))
     val rating = row.getInt("rating")
     val timesUpvotedByFriends = row.getInt("timesUpvotedByFriends")
 
-    UserAndRating(userName, origin, link, rating, timesUpvotedByFriends)
+    UserAndRating(userId, userOrigin, videoID, videoOrigin, rating, timesUpvotedByFriends)
   }
 
 }

@@ -1,0 +1,9 @@
+---
+- vars:
+    user: ubuntu
+    hosts: kafka-cassandra
+  hosts: "{{ hosts }}" 
+  user: "{{ user }}"
+  tasks:
+    - include: roles/kafka/tasks/stop-services.yml
+    - include: roles/kafka/tasks/start-services.yml

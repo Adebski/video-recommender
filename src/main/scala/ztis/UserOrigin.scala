@@ -1,23 +1,20 @@
 package ztis
 
-sealed trait UserOrigin {
-  def name: String
-}
+sealed trait UserOrigin
 
 object UserOrigin {
-  object Twitter extends UserOrigin {
-    override def name: String = "twitter"
-  }  
+  case object Twitter extends UserOrigin 
   
-  object MovieLens extends UserOrigin {
-    override def name: String  = "movielens"
-  }
+  case object MovieLens extends UserOrigin 
+  
+  case object Wykop extends UserOrigin 
   
   def fromString(name: String): UserOrigin = {
     name.toLowerCase match {
       case "twitter" => Twitter
       case "movielens" => MovieLens
-      case _ => throw new IllegalArgumentException(s"Unrecognized origin $name")
+      case "wykop" => Wykop
+      case _ => throw new IllegalArgumentException(s"Unrecognized user origin $name")
     }  
   }
 }

@@ -1,5 +1,7 @@
 package ztis.wykop
 
+import java.net.URI
+
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 
@@ -16,7 +18,7 @@ object EntryMapper {
   
   private def toEntry(node: JsonNode): Entry = {
     val author = node.get("author").asText()
-    val link = node.get("source_url").asText()
+    val link = URI.create(node.get("source_url").asText())
     
     Entry(author, link)
   }
