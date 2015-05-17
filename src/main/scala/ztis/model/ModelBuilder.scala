@@ -11,6 +11,7 @@ import org.apache.spark.SparkContext._
 import ztis.cassandra.{CassandraConfiguration, CassandraClient, SparkCassandraClient}
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 import scala.reflect.io.File
 import scala.sys.process._
@@ -37,6 +38,7 @@ object ModelBuilder extends App with StrictLogging {
   training.cache()
   validation.cache()
   test.cache()
+  test.checkpoint()
 
   val ranks = config.getIntList("model.params.ranks").asScala.toVector.map(_.toInt)
   val lambdas = config.getDoubleList("model.params.lambdas").asScala.toVector.map(_.toDouble)
@@ -53,7 +55,12 @@ object ModelBuilder extends App with StrictLogging {
     rank <- ranks; lambda <- lambdas; numIter <- numIters; alpha <- alphas
   } yield (rank, lambda, numIter, alpha)
 
-  val results = paramsCrossProduct.map {
+  type Result = (Double, MatrixFactorizationModel, (Int, Double, Int, Double), Double)
+
+  var best : (Double, MatrixFactorizationModel, (Int, Double, Int, Double), Double) = null
+  val results = ArrayBuffer[Result]()
+
+  paramsCrossProduct.foreach {
     case params @ (rank, lambda, numIter, alpha) => {
       val modelDirectory = s"$directory/r$rank-l${(lambda * 100).toInt}-i$numIter-a${(alpha * 100).toInt}"
       val (model, buildTime) = time {
@@ -67,16 +74,20 @@ object ModelBuilder extends App with StrictLogging {
       val score = Evaluations.evaluateAndGiveAUC(new ALSPrediction(model), validation,
         minRatingToConsiderAsGood, modelDirectory, buildTime)
       unpersistModel(model)
-      (score, model, params, buildTime)
+
+      if (best == null || best._1 < score) {
+        best = (score, model, params, buildTime)
+      }
+
+      results.append((score, null, params, buildTime))
     }
-  }.sortBy(-_._1).toList
+  }
   
-  val best = results.head
   val (score, model, (rank, lambda, numIter, alpha), _) = best
 
-  dumpScores(results, directory + "/scores.txt")
+  dumpScores(results.toVector, directory + "/scores.txt")
   logger.info(s"The best model params: rank=$rank, lambda=$lambda, numIter=$numIter, alpha=$alpha. It's ROC AUC = $score")
-
+  
   val testSetScore =  Evaluations.evaluateAndGiveAUC(new ALSPrediction(model), test,
     minRatingToConsiderAsGood, directory + "/best-on-test-set")
   logger.info(s"ROC AUC of best model on test set = $testSetScore")
@@ -100,7 +111,7 @@ object ModelBuilder extends App with StrictLogging {
     model.productFeatures.unpersist()
   }
 
-  private def dumpScores(scores : List[(Double, MatrixFactorizationModel, (Int, Double, Int, Double), Double)], filename: String) = {
+  private def dumpScores(scores : Vector[(Double, MatrixFactorizationModel, (Int, Double, Int, Double), Double)], filename: String) = {
     val header = "rank,lambda,numIter,alpha,score,time\n"
     val csv = scores.map {
       case (score, _, params, buildTime) => params.productIterator.toList.mkString(",") + "," + score.toString + "," + buildTime.toString
