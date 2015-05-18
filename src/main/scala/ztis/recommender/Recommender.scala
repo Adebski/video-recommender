@@ -21,10 +21,9 @@ object Recommender extends App with StrictLogging {
   implicit val system = ActorSystem("ClusterSystem", config)
 
   Cluster(system).registerOnMemberUp {
-    val userServiceRouter = createRouter("user-service-router")
-    val videoServiceRouter = createRouter("video-service-router")
+    val userVideoServiceRouter = createRouter("user-video-service-query-router")
 
-    val service = system.actorOf(RecommenderPortActor.props(userServiceRouter, videoServiceRouter), "recommender-service")
+    val service = system.actorOf(RecommenderPortActor.props(userVideoServiceRouter), "recommender-service")
 
     implicit val timeout = Timeout(5.seconds)
     IO(Http) ? Http.Bind(service, interface, port)

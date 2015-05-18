@@ -7,12 +7,12 @@ import spray.http._
 import MediaTypes._
 
 object RecommenderPortActor {
-  def props(userIdService : ActorRef, videoIdService : ActorRef) = {
-     Props(classOf[RecommenderPortActor], userIdService, videoIdService)
+  def props(idMappingService : ActorRef) = {
+     Props(classOf[RecommenderPortActor], idMappingService)
   }
 }
 
-class RecommenderPortActor(userIdService : ActorRef, videoIdService : ActorRef) extends Actor with RecommenderPort {
+class RecommenderPortActor(idMappingService : ActorRef) extends Actor with RecommenderPort {
   def actorRefFactory = context
   def receive = runRoute(myRoute)
 
