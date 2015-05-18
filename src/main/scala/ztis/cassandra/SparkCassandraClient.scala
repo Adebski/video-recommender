@@ -26,16 +26,6 @@ class SparkCassandraClient(val client: CassandraClient, val sparkContext: SparkC
     }
   }
 
-  def ratingsRDD: RDD[Rating] = {
-    sparkContext.cassandraTable(client.config.keyspace, client.config.ratingsTableName).map { row =>
-      val userId = row.getInt("user_id")
-      val itemId = row.getInt("video_id")
-      val rating = row.getInt("rating")
-
-      Rating(userId, itemId, rating)
-    }
-  }
-
   def saveUserAndRatings(rdd: RDD[UserAndRating]): RDD[UserAndRating] = {
     rdd.map(_.toTuple).saveToCassandra(client.config.keyspace, client.config.ratingsTableName, columns)
     rdd
