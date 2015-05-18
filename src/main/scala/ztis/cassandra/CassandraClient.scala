@@ -3,7 +3,7 @@ package ztis.cassandra
 import com.datastax.driver.core.policies.RoundRobinPolicy
 import com.datastax.driver.core.{Cluster, ResultSet}
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import ztis.UserVideoRating
+import ztis.{UserVideoImplicitAssociation, UserVideoRating}
 
 class CassandraClient(private[cassandra] val config: CassandraConfiguration) extends StrictLogging {
 
@@ -16,7 +16,8 @@ class CassandraClient(private[cassandra] val config: CassandraConfiguration) ext
   session.execute(CassandraClient.createRatingsTableQuery(config.keyspace, config.ratingsTableName))
   session.execute(CassandraClient.createRelationshipsTableQuery(config.keyspace, config.relationshipsTableName))
   val preparedInsertToRatings = session.prepare(CassandraClient.insertToRatingsQuery(config.keyspace, config.ratingsTableName))
-
+  val preparedInsertToRelationships = session.prepare(CassandraClient.insertToRelationshipsQuery(config.keyspace, config.relationshipsTableName))
+  
   def updateRating(userVideoRating: UserVideoRating): Unit = {
     val userID: java.lang.Integer = userVideoRating.userID
     val videoID: java.lang.Integer = userVideoRating.videoID
@@ -30,6 +31,20 @@ class CassandraClient(private[cassandra] val config: CassandraConfiguration) ext
     session.execute(statement)
   }
 
+  def updateImplicitAssociation(userVideoImplicitAssociation: UserVideoImplicitAssociation): Unit = {
+    val userID: java.lang.Integer = userVideoImplicitAssociation.internalUserID
+    val followedUserID: java.lang.Integer = userVideoImplicitAssociation.followedInternalUserID
+    val videoID: java.lang.Integer = userVideoImplicitAssociation.internalVideoID
+    
+    val statement = preparedInsertToRelationships.bind(userID,
+      userVideoImplicitAssociation.userOrigin.toString,
+      followedUserID,
+      userVideoImplicitAssociation.followedUserOrigin.toString,
+      videoID,
+      userVideoImplicitAssociation.videoOrigin.toString)
+    session.execute(statement)
+  }
+  
   def clean(): Unit = {
     logger.info(s"Dropping keyspace ${config.keyspace}")
     session.execute(CassandraClient.dropKeyspaceQuery(config.keyspace))
@@ -84,7 +99,7 @@ object CassandraClient {
                                                             |"video_id" int,
                                                             |"video_origin" text,
                                                             |"followed_user_id" int,
-                                                            |"followed_user_origin" string,
+                                                            |"followed_user_origin" text,
                                                             |PRIMARY KEY(("user_id", "user_origin", "video_id", "video_origin"), "followed_user_origin", "followed_user_id"))
      """.stripMargin  
   }
@@ -94,6 +109,11 @@ object CassandraClient {
        |INSERT INTO "$keyspace"."$tableName" ("user_id", "user_origin", "video_id", "video_origin", "rating") VALUES (?, ?, ?, ?, ?)
      """.stripMargin
 
+  def insertToRelationshipsQuery(keyspace: String, tableName: String): String =
+    s"""
+       |INSERT INTO "$keyspace"."$tableName" ("user_id", "user_origin", "followed_user_id", "followed_user_origin", "video_id", "video_origin") VALUES (?, ?, ?, ?, ?, ?)
+     """.stripMargin
+  
   def selectAll(keyspace: String, tableName: String): String = {
     s"""SELECT * FROM "$keyspace"."$tableName" """
   }

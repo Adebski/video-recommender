@@ -10,6 +10,7 @@ class SparkSpec extends FlatSpec with BeforeAndAfterAll {
   protected var sc: SparkContext = _
 
   override def beforeAll() {
+    super.beforeAll()
     val conf = new SparkConf()
       .setMaster(master)
       .setAppName(appName)
@@ -21,6 +22,7 @@ class SparkSpec extends FlatSpec with BeforeAndAfterAll {
     if (sc != null) {
       sc.stop()
     }
+    super.afterAll()
   }
 
 }
