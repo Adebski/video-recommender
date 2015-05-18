@@ -57,6 +57,7 @@ class WykopIntegrationTest extends FlatSpec with BeforeAndAfterAll with MockitoS
 
   override def afterAll(): Unit = {
     cassandraClient.clean()
+    cassandraClient.shutdown()
     system.shutdown()
   }
 }
