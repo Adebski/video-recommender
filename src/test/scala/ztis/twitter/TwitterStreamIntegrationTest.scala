@@ -9,7 +9,7 @@ import org.neo4j.test.TestGraphDatabaseFactory
 import org.scalatest.{BeforeAndAfterAll, FlatSpec}
 import twitter4j.Status
 import ztis._
-import ztis.cassandra.{UserAndRatingRepository, CassandraConfiguration, CassandraClient}
+import ztis.cassandra.{UserVideoRatingRepository, CassandraConfiguration, CassandraClient}
 import ztis.user_video_service.{UserServiceActor, VideoServiceActor}
 import ztis.user_video_service.persistence._
 
@@ -33,7 +33,7 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
   val videoRepository = new VideoRepository(graphDb)
   val cassandraClient = new CassandraClient(cassandraConfig)
   
-  val repository = new UserAndRatingRepository(cassandraClient)
+  val repository = new UserVideoRatingRepository(cassandraClient)
   val ssc = Spark.streamingContext(conf = Spark.baseConfiguration("twitter-stream-integration-test"))
   
   "Streamed tweets from twitter" should "be pushed to kafka, processed and persisted in Cassandra" in {
@@ -57,7 +57,7 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
     ssc.awaitTermination(10.seconds.toMillis)
 
     val ratings = repository.allRatings()
-    val expectedRatings = Vector(UserAndRating(0, UserOrigin.Twitter, 0, VideoOrigin.YouTube, 1, 0))
+    val expectedRatings = Vector(UserVideoRating(0, UserOrigin.Twitter, 0, VideoOrigin.YouTube, 1))
     assert(ratings == expectedRatings)
   }
 

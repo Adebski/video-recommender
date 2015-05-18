@@ -5,7 +5,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.spark.mllib.recommendation.{MatrixFactorizationModel, Rating}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import ztis.{VideoOrigin, UserAndRating, UserOrigin}
+import ztis.{VideoOrigin, UserVideoRating, UserOrigin}
 
 class SparkCassandraClient(val client: CassandraClient, val sparkContext: SparkContext) extends StrictLogging {
 
@@ -13,20 +13,29 @@ class SparkCassandraClient(val client: CassandraClient, val sparkContext: SparkC
 
   private val columns = SomeColumns("user_id", "user_origin", "video_id", "video_origin", "rating", "timesUpvotedByFriends")
 
-  def userAndRatingsRDD: RDD[UserAndRating] = {
+  def userVideoRatingsRDD: RDD[UserVideoRating] = {
     sparkContext.cassandraTable(client.config.keyspace, client.config.ratingsTableName).map { row =>
       val userId = row.getInt("user_id")
       val userOrigin = UserOrigin.fromString(row.getString("user_origin"))
       val videoID = row.getInt("video_id")
       val videoOrigin = VideoOrigin.fromString(row.getString("video_origin"))
       val rating = row.getInt("rating")
-      val timesUpvotedByFriends = row.getInt("timesUpvotedByFriends")
 
-      UserAndRating(userId, userOrigin, videoID, videoOrigin, rating, timesUpvotedByFriends)
+      UserVideoRating(userId, userOrigin, videoID, videoOrigin, rating)
     }
   }
 
-  def saveUserAndRatings(rdd: RDD[UserAndRating]): RDD[UserAndRating] = {
+  def ratingsRDD: RDD[Rating] = {
+    sparkContext.cassandraTable(client.config.keyspace, client.config.ratingsTableName).map { row =>
+      val userId = row.getInt("user_id")
+      val itemId = row.getInt("video_id")
+      val rating = row.getInt("rating")
+
+      Rating(userId, itemId, rating)
+    }
+  }
+
+  def saveUserVideoRatings(rdd: RDD[UserVideoRating]): RDD[UserVideoRating] = {
     rdd.map(_.toTuple).saveToCassandra(client.config.keyspace, client.config.ratingsTableName, columns)
     rdd
   }

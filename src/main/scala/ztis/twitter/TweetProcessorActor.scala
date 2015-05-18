@@ -9,7 +9,7 @@ import ztis.cassandra.CassandraClient
 import ztis.twitter.TweetProcessorActor.{ProcessTweet, Timeout}
 import ztis.user_video_service.UserServiceActor.{RegisterTwitterUser, TwitterUserRegistered}
 import ztis.user_video_service.VideoServiceActor.{RegisterVideos, Video, VideosRegistered}
-import ztis.{UserAndRating, UserOrigin, VideoOrigin}
+import ztis.{UserVideoRating, UserOrigin, VideoOrigin}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.FiniteDuration
@@ -99,7 +99,7 @@ class TweetProcessorActor(tweet: Tweet,
         val videoID = videoInformation._1
         val videoOrigin = videoInformation._2.origin
         val toPersist =
-          UserAndRating(userID, UserOrigin.Twitter, videoID, videoOrigin, 1, 0)
+          UserVideoRating(userID, UserOrigin.Twitter, videoID, videoOrigin, 1)
 
         log.info(s"Persisting $toPersist")
         cassandraClient.updateRating(toPersist)

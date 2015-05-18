@@ -6,10 +6,10 @@ import org.mockito.Mockito._
 import org.neo4j.test.TestGraphDatabaseFactory
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, FlatSpec}
-import ztis.cassandra.{CassandraClient, CassandraConfiguration, UserAndRatingRepository}
+import ztis.cassandra.{CassandraClient, CassandraConfiguration, UserVideoRatingRepository}
 import ztis.user_video_service.persistence._
 import ztis.user_video_service.{UserServiceActor, VideoServiceActor}
-import ztis.{UserAndRating, UserOrigin, VideoOrigin}
+import ztis.{UserVideoRating, UserOrigin, VideoOrigin}
 
 import scala.concurrent.duration._
 
@@ -32,7 +32,7 @@ class WykopIntegrationTest extends FlatSpec with BeforeAndAfterAll with MockitoS
   val userRepository = new UserRepository(graphDb)
   val videoRepository = new VideoRepository(graphDb)
   val cassandraClient = new CassandraClient(cassandraConfig)
-  val repository = new UserAndRatingRepository(cassandraClient)
+  val repository = new UserVideoRatingRepository(cassandraClient)
 
   val api: WykopAPI = mock[WykopAPI]
   when(api.mainPageEntries(1)).thenReturn(mainPageEntries).thenReturn(Vector())
@@ -45,8 +45,8 @@ class WykopIntegrationTest extends FlatSpec with BeforeAndAfterAll with MockitoS
 
     Thread.sleep(10.seconds.toMillis)
     val ratings = repository.allRatings().toSet
-    val expectedRatings = Set(UserAndRating(0, UserOrigin.Wykop, 0, VideoOrigin.YouTube, 1, 0),
-      UserAndRating(1, UserOrigin.Wykop, 1, VideoOrigin.Vimeo, 1, 0))
+    val expectedRatings = Set(UserVideoRating(0, UserOrigin.Wykop, 0, VideoOrigin.YouTube, 1),
+      UserVideoRating(1, UserOrigin.Wykop, 1, VideoOrigin.Vimeo, 1))
     assert(ratings == expectedRatings)
   }
 

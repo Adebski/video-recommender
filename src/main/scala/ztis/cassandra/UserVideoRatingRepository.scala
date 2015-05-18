@@ -1,28 +1,27 @@
 package ztis.cassandra
 
 import com.datastax.driver.core.Row
-import ztis.{UserAndRating, UserOrigin, VideoOrigin}
+import ztis.{UserVideoRating, UserOrigin, VideoOrigin}
 
 import scala.collection.JavaConverters._
 
-class UserAndRatingRepository(client: CassandraClient) {
+class UserVideoRatingRepository(client: CassandraClient) {
 
-  def allRatings(): Vector[UserAndRating] = {
+  def allRatings(): Vector[UserVideoRating] = {
     val resultSet = client.allRatings
     val iterator = resultSet.iterator().asScala
 
-    iterator.map(toUserAndRating).toVector
+    iterator.map(toUserVideoRating).toVector
   }
         
-  private def toUserAndRating(row: Row): UserAndRating = {
+  private def toUserVideoRating(row: Row): UserVideoRating = {
     val userId = row.getInt("user_id")
     val userOrigin = UserOrigin.fromString(row.getString("user_origin"))
     val videoID = row.getInt("video_id")
     val videoOrigin = VideoOrigin.fromString(row.getString("video_origin"))
     val rating = row.getInt("rating")
-    val timesUpvotedByFriends = row.getInt("timesUpvotedByFriends")
 
-    UserAndRating(userId, userOrigin, videoID, videoOrigin, rating, timesUpvotedByFriends)
+    UserVideoRating(userId, userOrigin, videoID, videoOrigin, rating)
   }
 
 }
