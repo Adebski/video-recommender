@@ -76,6 +76,7 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
     ssc.stop()
     
     cassandraClient.clean()
+    cassandraClient.shutdown()
     system.shutdown()
     
     logger.info(s"Deleting topic $testTopic")
