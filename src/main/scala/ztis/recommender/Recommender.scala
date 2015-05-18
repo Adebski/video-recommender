@@ -1,12 +1,15 @@
 package ztis.recommender
 
+import akka.actor.ActorSystem
+import akka.cluster.Cluster
+import akka.io.IO
+import akka.pattern.ask
+import akka.routing.FromConfig
+import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import akka.actor.{ActorSystem, Props}
-import akka.io.IO
 import spray.can.Http
-import akka.pattern.ask
-import akka.util.Timeout
+
 import scala.concurrent.duration._
 
 object Recommender extends App with StrictLogging {
@@ -15,12 +18,21 @@ object Recommender extends App with StrictLogging {
   val interface = config.getString("recommender.interface")
   val port = config.getInt("recommender.port")
 
-  implicit val system = ActorSystem("on-spray-can", config)
+  implicit val system = ActorSystem("ClusterSystem", config)
 
-  val service = system.actorOf(Props[RecommenderPortActor], "demo-service")
+  Cluster(system).registerOnMemberUp {
+    val userServiceRouter = createRouter("user-service-router")
+    val videoServiceRouter = createRouter("video-service-router")
 
-  implicit val timeout = Timeout(5.seconds)
-  IO(Http) ? Http.Bind(service, interface, port)
+    val service = system.actorOf(RecommenderPortActor.props(userServiceRouter, videoServiceRouter), "recommender-service")
 
-  logger.info("Recommender service started.")
+    implicit val timeout = Timeout(5.seconds)
+    IO(Http) ? Http.Bind(service, interface, port)
+
+    logger.info("Recommender service started.")
+  }
+
+  private def createRouter(routerName: String) = {
+    system.actorOf(FromConfig.props(), name = routerName)
+  }
 }

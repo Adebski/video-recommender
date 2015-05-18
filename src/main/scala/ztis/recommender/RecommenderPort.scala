@@ -1,12 +1,18 @@
 package ztis.recommender
 
-import akka.actor.Actor
+import akka.actor.{Props, ActorRef, Actor}
 import spray.httpx.marshalling.ToResponseMarshallable
 import spray.routing._
 import spray.http._
 import MediaTypes._
 
-class RecommenderPortActor extends Actor with RecommenderPort {
+object RecommenderPortActor {
+  def props(userIdService : ActorRef, videoIdService : ActorRef) = {
+     Props(classOf[RecommenderPortActor], userIdService, videoIdService)
+  }
+}
+
+class RecommenderPortActor(userIdService : ActorRef, videoIdService : ActorRef) extends Actor with RecommenderPort {
   def actorRefFactory = context
   def receive = runRoute(myRoute)
 
