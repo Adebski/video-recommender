@@ -38,7 +38,6 @@ object ModelBuilder extends App with StrictLogging {
   training.cache()
   validation.cache()
   test.cache()
-  test.checkpoint()
 
   val ranks = config.getIntList("model.params.ranks").asScala.toVector.map(_.toInt)
   val lambdas = config.getDoubleList("model.params.lambdas").asScala.toVector.map(_.toDouble)
