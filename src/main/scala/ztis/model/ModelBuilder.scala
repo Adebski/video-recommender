@@ -16,6 +16,8 @@ import scala.reflect.io.File
 import scala.sys.process._
 
 object ModelBuilder extends App with StrictLogging {
+  case class Result(score: Double, model: MatrixFactorizationModel, params: ModelParams, time: Double)
+
   val config = ConfigFactory.load("model")
   val cassandraConfig = CassandraConfiguration(config)
   val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("ModelBuilder"), cassandraConfig)
@@ -49,9 +51,7 @@ object ModelBuilder extends App with StrictLogging {
   val minRatingToConsiderAsGood = config.getInt("model.min-rating-to-consider-as-good")
   val alsModelType = config.getString("model.als-model-type")
 
-  type Result = (Double, MatrixFactorizationModel, ModelParams, Double)
-
-  var best : (Double, MatrixFactorizationModel, ModelParams, Double) = null
+  var best : Result = null
   val results = ArrayBuffer[Result]()
 
   ModelParams.paramsCrossProduct(config.getConfig("model.params")).foreach {
@@ -71,15 +71,15 @@ object ModelBuilder extends App with StrictLogging {
         minRatingToConsiderAsGood, modelDirectory, buildTime)
       unpersistModel(model)
 
-      if (best == null || best._1 < score) {
-        best = (score, model, params, buildTime)
+      if (best == null || best.score < score) {
+        best = Result(score, model, params, buildTime)
       }
 
-      results.append((score, null, params, buildTime))
+      results.append(Result(score, null, params, buildTime))
     }
   }
   
-  val (score, model, params, _) = best
+  val Result(score, model, params, _) = best
 
   dumpScores(results.toVector, directory + "/scores.txt")
   logger.info(s"The best model params: ${params.toString}. It's ROC AUC = $score")
@@ -116,10 +116,10 @@ object ModelBuilder extends App with StrictLogging {
     model.productFeatures.unpersist()
   }
 
-  private def dumpScores(scores : Vector[(Double, MatrixFactorizationModel, ModelParams, Double)], filename: String) = {
+  private def dumpScores(scores : Vector[Result], filename: String) = {
     val header = ModelParams.csvHeader + ",score,time\n"
     val csv = scores.map {
-      case (score, _, params, buildTime) => params.toCsv + "," + score.toString + "," + buildTime.toString
+      case Result(score, _, params, buildTime) => params.toCsv + "," + score.toString + "," + buildTime.toString
     }.mkString("\n")
 
     File(filename).writeAll(header, csv)
