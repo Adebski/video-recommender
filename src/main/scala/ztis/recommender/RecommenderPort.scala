@@ -12,11 +12,12 @@ object RecommenderPortActor {
   }
 }
 
-class RecommenderPortActor(idMappingService : ActorRef) extends Actor with RecommenderPort {
+class RecommenderPortActor(userVideoQueryService : ActorRef) extends Actor with RecommenderPort {
   def actorRefFactory = context
   def receive = runRoute(myRoute)
 
-  override val recommenderService: RecommenderService = new RecommenderService
+  private val mappingService : MappingService = new UserVideoQueryMappingService(userVideoQueryService)
+  override val recommenderService: RecommenderService = new RecommenderService(mappingService)
 }
 
 trait RecommenderPort extends HttpService {
