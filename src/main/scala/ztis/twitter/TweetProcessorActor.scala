@@ -9,7 +9,7 @@ import ztis.cassandra.CassandraClient
 import ztis.twitter.TweetProcessorActor.{ProcessTweet, Timeout}
 import ztis.user_video_service.UserServiceActor.{RegisterTwitterUser, TwitterUserRegistered}
 import ztis.user_video_service.VideoServiceActor.{RegisterVideos, Video, VideosRegistered}
-import ztis.{UserVideoRating, UserOrigin, VideoOrigin}
+import ztis.{UserVideoImplicitAssociation, UserVideoRating, UserOrigin, VideoOrigin}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.FiniteDuration
@@ -32,8 +32,9 @@ object TweetProcessorActor {
             timeout: FiniteDuration,
             cassandraClient: CassandraClient,
             userServiceActor: ActorRef,
-            videoServiceActor: ActorRef): Props = {
-    Props(classOf[TweetProcessorActor], tweet, timeout, cassandraClient, userServiceActor, videoServiceActor)
+            videoServiceActor: ActorRef,
+            relationshipsFetcher: RelationshipFetcherProducer): Props = {
+    Props(classOf[TweetProcessorActor], tweet, timeout, cassandraClient, userServiceActor, videoServiceActor, relationshipsFetcher)
   }
 }
 
@@ -41,7 +42,8 @@ class TweetProcessorActor(tweet: Tweet,
                           timeout: FiniteDuration,
                           cassandraClient: CassandraClient,
                           userServiceActor: ActorRef,
-                          videoServiceActor: ActorRef) extends Actor with ActorLogging {
+                          videoServiceActor: ActorRef, 
+                          relationshipsFetcher: RelationshipFetcherProducer) extends Actor with ActorLogging {
 
   self ! TweetProcessorActor.ProcessTweet(tweet)
 
@@ -103,6 +105,12 @@ class TweetProcessorActor(tweet: Tweet,
 
         log.info(s"Persisting $toPersist")
         cassandraClient.updateRating(toPersist)
+        
+        userResponse.get.followedBy.foreach { fromUserID => 
+          val association = UserVideoImplicitAssociation(fromUserID, UserOrigin.Twitter, userID, UserOrigin.Twitter, videoID, videoOrigin)
+          cassandraClient.updateImplicitAssociation(association)
+        }
+        relationshipsFetcher.queueFetchRelationshipsFor(tweet.userId())
       }
     } catch {
       case e: Exception => {

@@ -49,6 +49,36 @@ class SparkCassandraClientTest extends CassandraSpec(ConfigFactory.load("cassand
     assert(userVideoFullInformation == expectedUserVideoFullInformation)
   } 
   
+  it should "populate relationships table based on ratings table" in {
+    // given
+    val firstRating = UserVideoRating(10, UserOrigin.Twitter, 1, VideoOrigin.YouTube, 1)  
+    val secondRating = UserVideoRating(10, UserOrigin.Twitter, 2, VideoOrigin.Vimeo, 2)  
+    val thirdRating = UserVideoRating(10, UserOrigin.Twitter, 3, VideoOrigin.YouTube, 3)
+    val userIDs = Vector(20, 30, 40)
+    
+    cassandraClient.updateRating(firstRating)
+    cassandraClient.updateRating(secondRating)
+    cassandraClient.updateRating(thirdRating)
+    
+    // when
+    sparkCassandraClient.updateMoviesForNewRelationships(10, UserOrigin.Twitter, userIDs, UserOrigin.Twitter)
+    
+    // then
+    val associations = sparkCassandraClient.userVideoImplicitAssociations.collect().toSet
+    val expectedAssociations = Set(
+      UserVideoImplicitAssociation(20, UserOrigin.Twitter, 10, UserOrigin.Twitter, 1, VideoOrigin.YouTube),
+      UserVideoImplicitAssociation(30, UserOrigin.Twitter, 10, UserOrigin.Twitter, 1, VideoOrigin.YouTube),
+      UserVideoImplicitAssociation(40, UserOrigin.Twitter, 10, UserOrigin.Twitter, 1, VideoOrigin.YouTube),
+      UserVideoImplicitAssociation(20, UserOrigin.Twitter, 10, UserOrigin.Twitter, 2, VideoOrigin.Vimeo),
+      UserVideoImplicitAssociation(30, UserOrigin.Twitter, 10, UserOrigin.Twitter, 2, VideoOrigin.Vimeo),
+      UserVideoImplicitAssociation(40, UserOrigin.Twitter, 10, UserOrigin.Twitter, 2, VideoOrigin.Vimeo),
+      UserVideoImplicitAssociation(20, UserOrigin.Twitter, 10, UserOrigin.Twitter, 3, VideoOrigin.YouTube),
+      UserVideoImplicitAssociation(30, UserOrigin.Twitter, 10, UserOrigin.Twitter, 3, VideoOrigin.YouTube),
+      UserVideoImplicitAssociation(40, UserOrigin.Twitter, 10, UserOrigin.Twitter, 3, VideoOrigin.YouTube)
+    )
+    assert(associations == expectedAssociations)
+  }
+  
   override def afterAll(): Unit = {
     spark.stop()
     

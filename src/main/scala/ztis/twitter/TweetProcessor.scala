@@ -7,7 +7,7 @@ import ztis.KafkaConsumer
 class TweetProcessor(system: ActorSystem,
                      config: Config,
                      tweetProcessorActor: ActorRef) {
-  private val numberOfThreads = config.getInt("kafka-threads")
+  private val numberOfThreads = config.getInt("tweet-processor.kafka-threads")
 
   private val topic = config.getString("tweet-processor.topic")
 

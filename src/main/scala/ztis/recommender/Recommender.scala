@@ -4,15 +4,15 @@ import akka.actor.ActorSystem
 import akka.cluster.Cluster
 import akka.io.IO
 import akka.pattern.ask
-import akka.routing.FromConfig
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import spray.can.Http
+import ztis.util.RouterSupport
 
 import scala.concurrent.duration._
 
-object Recommender extends App with StrictLogging {
+object Recommender extends App with StrictLogging with RouterSupport {
   val config = ConfigFactory.load("recommender")
 
   val interface = config.getString("recommender.interface")
@@ -21,7 +21,7 @@ object Recommender extends App with StrictLogging {
   implicit val system = ActorSystem("ClusterSystem", config)
 
   Cluster(system).registerOnMemberUp {
-    val userVideoServiceRouter = createRouter("user-video-service-query-router")
+    val userVideoServiceRouter = createUserVideoServiceQueryRouter(system)
 
     val service = system.actorOf(RecommenderPortActor.props(userVideoServiceRouter), "recommender-service")
 
@@ -29,9 +29,5 @@ object Recommender extends App with StrictLogging {
     IO(Http) ? Http.Bind(service, interface, port)
 
     logger.info("Recommender service started.")
-  }
-
-  private def createRouter(routerName: String) = {
-    system.actorOf(FromConfig.props(), name = routerName)
   }
 }

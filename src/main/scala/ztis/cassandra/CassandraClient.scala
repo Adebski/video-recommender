@@ -59,6 +59,10 @@ class CassandraClient(private[cassandra] val config: CassandraConfiguration) ext
     session.execute(CassandraClient.selectAll(config.keyspace, config.ratingsTableName))
   }
 
+  def allAssociations: ResultSet = {
+    session.execute(CassandraClient.selectAll(config.keyspace, config.relationshipsTableName))
+  }
+  
   def shutdown(): Unit = {
     session.close()
     cluster.close()

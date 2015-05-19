@@ -4,6 +4,7 @@ import akka.actor.Status.Failure
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.event.LoggingReceive
 import org.neo4j.graphdb.GraphDatabaseService
+import ztis.twitter.TwitterUser
 import ztis.user_video_service.ServiceActorMessages.{NextInternalIDResponse, NextInternalIDRequest}
 import ztis.user_video_service.UserServiceActor._
 import ztis.user_video_service.persistence.{Metadata, MetadataRepository, UnitOfWork, UserRepository}
@@ -14,7 +15,11 @@ object UserServiceActor {
 
   case class RegisterWykopUser(externalUserName: String)
 
-  case class TwitterUserRegistered(internalUserID: Int, request: RegisterTwitterUser)
+  case class CreateRelationshipsToTwitterUser(externalUserID: Long, fromUsers: Vector[TwitterUser])
+  
+  case class ToTwitterUserRelationshipsCreated(internalUserID: Int, fromUsers: Vector[Int])
+  
+  case class TwitterUserRegistered(internalUserID: Int, followedBy: Vector[Int], request: RegisterTwitterUser)
 
   case class WykopUserRegistered(internalUserID: Int, request: RegisterWykopUser)
 
@@ -51,6 +56,9 @@ class UserServiceActor(graphDatabaseService: GraphDatabaseService,
     case request: RegisterWykopUser => {
       handleInTryCatch(request, handleWykopRequest)
     }
+    case request: CreateRelationshipsToTwitterUser => {
+      handleInTryCatch(request, handleTwitterRelationshipsRequest)  
+    }
   }
 
   private def handleInTryCatch[IN, OUT](request: IN, processFunction: IN => OUT): Unit = {
@@ -79,6 +87,16 @@ class UserServiceActor(graphDatabaseService: GraphDatabaseService,
     result._2
   }
 
+  private def handleTwitterRelationshipsRequest(request: CreateRelationshipsToTwitterUser): ToTwitterUserRelationshipsCreated = {
+    val result: (Int, ToTwitterUserRelationshipsCreated) = 
+      userRepository.createRelationshipsToTwitterUser(request.externalUserID, request.fromUsers, tempNextInternalID)
+    
+    tempNextInternalID = result._1
+    metadataRepository.updateNextUserInternalID(tempNextInternalID)
+    
+    result._2
+  }
+  
   private def handleWykopRequest(request: RegisterWykopUser): WykopUserRegistered = {
     val result: (Int, WykopUserRegistered) = userRepository.getOrCreateWykopUser(request, tempNextInternalID)
 
