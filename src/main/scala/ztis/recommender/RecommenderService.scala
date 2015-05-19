@@ -6,12 +6,11 @@ import org.apache.spark.mllib.recommendation.MatrixFactorizationModel
 import ztis.Spark
 import ztis.cassandra.{CassandraClient, CassandraConfiguration, SparkCassandraClient}
 
-class RecommenderService extends StrictLogging {
+class RecommenderService(mappingService : MappingService) extends StrictLogging {
   private val cassandraConfig = CassandraConfiguration(ConfigFactory.load("model"))
   private val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("ModelBuilder"), cassandraConfig)
   private val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(cassandraConfig), Spark.sparkContext(sparkConfig))
   private val model: MatrixFactorizationModel = sparkCassandraClient.fetchModel
-  private val allUsers: Set[Int] = model.userFeatures.map(_._1).collect().toSet
 
   logger.info("Recommendation model successfully loaded.")
 
@@ -27,7 +26,8 @@ class RecommenderService extends StrictLogging {
       val recommendations = usersWithData.map(userId => model.recommendProducts(userId, howMany))
         .flatten
         .sortBy(-_.rating)
-        .map(rating => Video(rating.product.toString))
+        .map(rating => mappingService.resolveVideo(rating.product))
+        .flatten
         .distinct
         .take(howMany)
 
@@ -38,9 +38,10 @@ class RecommenderService extends StrictLogging {
   private def filterUsers(request: RecommendRequest) = {
     var usersWithData: Vector[Int] = Vector.empty
 
-    val twitterId = request.twitterId.toInt // TODO(#16)
+    val (twitterId : Option[Int], wykopId : Option[Int]) = mappingService.identifyUser(request.twitterId, request.wykopId)
+
     if (haveDataFor(twitterId)) {
-      usersWithData = usersWithData :+ twitterId
+      usersWithData = usersWithData :+ twitterId.get
     }
     else {
       // TODO: put to the queue
@@ -48,9 +49,8 @@ class RecommenderService extends StrictLogging {
       logger.info(s"Data not found. Scheduled twitter user ${request.twitterId} for high priority data retrieval")
     }
 
-    val wykopId = 100 + request.wykopId.toInt // TODO(#16)
     if (haveDataFor(wykopId)) {
-      usersWithData = usersWithData :+ wykopId
+      usersWithData = usersWithData :+ wykopId.get
     }
     else {
       // TODO: put to the queue
@@ -61,7 +61,7 @@ class RecommenderService extends StrictLogging {
     usersWithData
   }
 
-  private def haveDataFor(userId: Int) = {
-    allUsers.contains(userId)
+  private def haveDataFor(userId: Option[Int]) = {
+    userId.isDefined
   }
 }
