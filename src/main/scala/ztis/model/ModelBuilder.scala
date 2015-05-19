@@ -46,7 +46,7 @@ object ModelBuilder extends App with StrictLogging {
   test.cache()
   
   val directory = s"report-${DateTime.now().toString(DateTimeFormat.forPattern("yyyy-MM-dd--HH-mm-ss"))}"
-    s"mkdir $directory" !!
+  s"mkdir $directory" !!
   
   val minRatingToConsiderAsGood = config.getInt("model.min-rating-to-consider-as-good")
   val alsModelType = config.getString("model.als-model-type")
