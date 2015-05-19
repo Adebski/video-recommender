@@ -6,7 +6,7 @@ import org.apache.spark.mllib.recommendation.{ALS, Rating, MatrixFactorizationMo
 import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import ztis.{UserAndRating, Spark}
+import ztis.{UserVideoFullInformation, Spark}
 import org.apache.spark.SparkContext._
 import ztis.cassandra.{CassandraConfiguration, CassandraClient, SparkCassandraClient}
 
@@ -22,7 +22,7 @@ object ModelBuilder extends App with StrictLogging {
   val cassandraConfig = CassandraConfiguration(config)
   val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("ModelBuilder"), cassandraConfig)
   val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(cassandraConfig), Spark.sparkContext(sparkConfig))
-  val ratings = sparkCassandraClient.userAndRatingsRDD
+  val ratings = sparkCassandraClient.userVideoFullInformation
 
   val Array(fullTraining, fullValidation, fullTest) = ratings.randomSplit(Array(0.6, 0.2, 0.2))
   
@@ -102,13 +102,13 @@ object ModelBuilder extends App with StrictLogging {
   sparkCassandraClient.saveModel(model)
   sparkCassandraClient.sparkContext.stop()
 
-  private def toRating(userAndRating : UserAndRating) : Rating = {
-    Rating(userAndRating.userID, userAndRating.videoID, userAndRating.rating)
+  private def toRating(userVideoFullInformation : UserVideoFullInformation) : Rating = {
+    Rating(userVideoFullInformation.userID, userVideoFullInformation.videoID, userVideoFullInformation.rating)
   }
 
-  private def toConfidence(userAndRating: UserAndRating, followersFactor: Double): Rating = {
-    val confidence = userAndRating.rating + followersFactor * userAndRating.timesUpvotedByFriends
-    Rating(userAndRating.userID, userAndRating.videoID, confidence)
+  private def toConfidence(userVideoFullInformation: UserVideoFullInformation, followersFactor: Double): Rating = {
+    val confidence = userVideoFullInformation.rating + followersFactor * userVideoFullInformation.timesRatedByFollowedUsers
+    Rating(userVideoFullInformation.userID, userVideoFullInformation.videoID, confidence)
   }
 
   private def unpersistModel(model: MatrixFactorizationModel): Unit = {
