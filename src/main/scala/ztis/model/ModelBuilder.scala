@@ -100,7 +100,7 @@ object ModelBuilder extends App with StrictLogging {
   logger.info(s"baseline ROC AUC (random) = $randomScore")
 
   sparkCassandraClient.saveModel(model)
-  sparkCassandraClient.sparkContext.stop()
+  sparkCassandraClient.stop()
 
   private def toRating(userVideoFullInformation : UserVideoFullInformation) : Rating = {
     Rating(userVideoFullInformation.userID, userVideoFullInformation.videoID, userVideoFullInformation.rating)

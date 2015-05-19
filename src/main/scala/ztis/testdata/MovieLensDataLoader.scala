@@ -23,7 +23,7 @@ object MovieLensDataLoader extends App with StrictLogging {
     downloadDataset(config)
     insertMovielensDataToCassandra(sparkCassandraClient, unaryScale)
     logger.info("Data inserted into database")
-    sparkCassandraClient.sparkContext.stop()
+    sparkCassandraClient.stop()
   } catch {
     case e: Exception => logger.error("Error during loading test data", e)
   }

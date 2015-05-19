@@ -12,7 +12,7 @@ class SparkCassandraClient(val client: CassandraClient, val sparkContext: SparkC
 
   type FeaturesRDD = RDD[(Int, Array[Double])]
 
-  private val columns = SomeColumns("user_id", "user_origin", "video_id", "video_origin", "rating", "timesUpvotedByFriends")
+  private val columns = SomeColumns("user_id", "user_origin", "video_id", "video_origin", "rating")
 
   def userVideoRatingsRDD: RDD[UserVideoRating] = {
     sparkContext.cassandraTable(client.config.keyspace, client.config.ratingsTableName).map { row =>
@@ -109,6 +109,11 @@ class SparkCassandraClient(val client: CassandraClient, val sparkContext: SparkC
 
   private def loadFeatures(keyspace: String, tableName: String): RDD[(Int, Array[Double])] = {
     sparkContext.cassandraTable[(Int, Vector[Double])](keyspace, tableName).map(feature => (feature._1, feature._2.toArray))
+  }
+  
+  def stop(): Unit = {
+    sparkContext.stop()
+    client.shutdown()
   }
 }
 
