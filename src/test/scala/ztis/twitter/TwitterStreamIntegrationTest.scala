@@ -9,18 +9,17 @@ import org.neo4j.test.TestGraphDatabaseFactory
 import org.scalatest.{BeforeAndAfterAll, FlatSpec}
 import twitter4j.Status
 import ztis._
-import ztis.cassandra.{UserAndRatingRepository, CassandraConfiguration, CassandraClient}
+import ztis.cassandra.{CassandraSpec, UserVideoRatingRepository, CassandraConfiguration, CassandraClient}
 import ztis.user_video_service.{UserServiceActor, VideoServiceActor}
 import ztis.user_video_service.persistence._
 
 import scala.collection.mutable
 import scala.concurrent.duration._
 
-class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with StrictLogging {
+class TwitterStreamIntegrationTest extends CassandraSpec(ConfigFactory.load("cassandra.conf")) with StrictLogging {
 
   val twitterLink = "http://t.co/H27Ftvjoxe"
   val youtubeLink = "https://www.youtube.com/watch?v=PBm8H6NFsGM"
-  val cassandraConfig = CassandraConfiguration(ConfigFactory.load("cassandra.conf"))
   val tweetProcessorConfig = ConfigFactory.load("tweet-processor.conf")
   val twitterStreamConf = ConfigFactory.load("twitter-stream.conf")
   val testTopic = twitterStreamConf.getString("twitter-stream.topic")
@@ -31,9 +30,8 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
   val schemaInitializer = new SchemaInitializer(graphDb, Option(10.seconds))
   val userRepository = new UserRepository(graphDb)
   val videoRepository = new VideoRepository(graphDb)
-  val cassandraClient = new CassandraClient(cassandraConfig)
   
-  val repository = new UserAndRatingRepository(cassandraClient)
+  val repository = new UserVideoRatingRepository(cassandraClient)
   val ssc = Spark.streamingContext(conf = Spark.baseConfiguration("twitter-stream-integration-test"))
   
   "Streamed tweets from twitter" should "be pushed to kafka, processed and persisted in Cassandra" in {
@@ -57,7 +55,7 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
     ssc.awaitTermination(10.seconds.toMillis)
 
     val ratings = repository.allRatings()
-    val expectedRatings = Vector(UserAndRating(0, UserOrigin.Twitter, 0, VideoOrigin.YouTube, 1, 0))
+    val expectedRatings = Vector(UserVideoRating(0, UserOrigin.Twitter, 0, VideoOrigin.YouTube, 1))
     assert(ratings == expectedRatings)
   }
 
@@ -70,18 +68,13 @@ class TwitterStreamIntegrationTest extends FlatSpec with BeforeAndAfterAll with 
   }
   
   override def afterAll(): Unit = {
-    logger.info("Cleaning up ")
-    
     logger.info("Stopping spark streaming")
     ssc.stop()
-    
-    cassandraClient.clean()
-    cassandraClient.shutdown()
-    system.shutdown()
-    
+
     logger.info(s"Deleting topic $testTopic")
-    TopicCommand.main(Array("--zookeeper", 
+    TopicCommand.main(Array("--zookeeper",
       tweetProcessorConfig.getString("consumer.zookeeper.connect"),
       "--delete", "--topic", testTopic))
+    super.afterAll()
   }
 }

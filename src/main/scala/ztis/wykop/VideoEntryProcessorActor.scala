@@ -6,7 +6,7 @@ import ztis.cassandra.CassandraClient
 import ztis.user_video_service.UserServiceActor.{RegisterWykopUser, WykopUserRegistered}
 import ztis.user_video_service.VideoServiceActor.{RegisterVideos, VideosRegistered}
 import ztis.wykop.VideoEntryProcessorActor.{Timeout, ProcessEntry}
-import ztis.{UserAndRating, UserOrigin}
+import ztis.{UserVideoRating, UserOrigin}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -71,7 +71,7 @@ class VideoEntryProcessorActor(entry: VideoEntry,
       val videoID = videoResponse.get.internalVideoIDs(0)
       val videoOrigin = entry.video.origin
       val toPersist =
-        UserAndRating(userID, UserOrigin.Wykop, videoID, videoOrigin, 1, 0)
+        UserVideoRating(userID, UserOrigin.Wykop, videoID, videoOrigin, 1)
       log.info(s"Persisting $toPersist")
 
       cassandraClient.updateRating(toPersist)

@@ -6,7 +6,7 @@ import java.net.URL
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import ztis.cassandra.{CassandraConfiguration, CassandraClient, SparkCassandraClient}
-import ztis.{VideoOrigin, Spark, UserAndRating, UserOrigin}
+import ztis.{VideoOrigin, Spark, UserVideoRating, UserOrigin}
 
 import scala.language.postfixOps
 import scala.sys.process._
@@ -23,7 +23,7 @@ object MovieLensDataLoader extends App with StrictLogging {
     downloadDataset(config)
     insertMovielensDataToCassandra(sparkCassandraClient, unaryScale)
     logger.info("Data inserted into database")
-    sparkCassandraClient.sparkContext.stop()
+    sparkCassandraClient.stop()
   } catch {
     case e: Exception => logger.error("Error during loading test data", e)
   }
@@ -31,23 +31,22 @@ object MovieLensDataLoader extends App with StrictLogging {
   private def insertMovielensDataToCassandra(sparkCassandraClient: SparkCassandraClient, unaryScale: Boolean): Unit = {
     val ratingFile = sparkCassandraClient.sparkContext.textFile("ml-1m/ratings.dat")
     val ratings = if (unaryScale) {
-      ratingFile.map(toUserAndRating).filter(_.rating > 3).map(_.copy(rating = 1))
+      ratingFile.map(toUserVideoRating).filter(_.rating > 3).map(_.copy(rating = 1))
     }
     else {
-      ratingFile.map(toUserAndRating)
+      ratingFile.map(toUserVideoRating)
     }
 
-    sparkCassandraClient.saveUserAndRatings(ratings)
+    sparkCassandraClient.saveUserVideoRatings(ratings)
   }
 
-  private def toUserAndRating(line: String): UserAndRating = {
+  private def toUserVideoRating(line: String): UserVideoRating = {
     val fields = line.split("::")
-    UserAndRating(userID = fields(0).toInt,
+    UserVideoRating(userID = fields(0).toInt,
       UserOrigin.MovieLens,
       videoID = fields(1).toInt,
       VideoOrigin.MovieLens,
-      rating = fields(2).toInt,
-      timesUpvotedByFriends = 0)
+      rating = fields(2).toInt)
   }
 
   private def downloadDataset(config: Config): Unit = {
