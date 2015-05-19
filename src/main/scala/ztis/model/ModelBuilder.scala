@@ -6,27 +6,31 @@ import org.apache.spark.mllib.recommendation.{ALS, Rating, MatrixFactorizationMo
 import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import ztis.Spark
+import ztis.{UserAndRating, Spark}
 import org.apache.spark.SparkContext._
 import ztis.cassandra.{CassandraConfiguration, CassandraClient, SparkCassandraClient}
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 import scala.reflect.io.File
 import scala.sys.process._
 
 object ModelBuilder extends App with StrictLogging {
+  case class Result(score: Double, model: MatrixFactorizationModel, params: ModelParams, time: Double)
+
   val config = ConfigFactory.load("model")
   val cassandraConfig = CassandraConfiguration(config)
   val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("ModelBuilder"), cassandraConfig)
   val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(cassandraConfig), Spark.sparkContext(sparkConfig))
-  val ratings = sparkCassandraClient.ratingsRDD
+  val ratings = sparkCassandraClient.userAndRatingsRDD
 
-  val Array(training, maybeValidation, maybeTest) = ratings.randomSplit(Array(0.6, 0.2, 0.2))
+  val Array(fullTraining, fullValidation, fullTest) = ratings.randomSplit(Array(0.6, 0.2, 0.2))
   
   val complementValidationSets = config.getBoolean("model.complement-validation-sets")
   val complementFactor = config.getDouble("model.complement-factor")
+
+  val maybeValidation = fullValidation.map(toRating)
+  val maybeTest = fullTest.map(toRating)
 
   val (validation, test) = if(complementValidationSets) {
     (complementDataset(maybeValidation, complementFactor), complementDataset(maybeTest, complementFactor))
@@ -34,58 +38,51 @@ object ModelBuilder extends App with StrictLogging {
   else {
     (maybeValidation, maybeTest)
   }
-  
+
+  val training = fullTraining.map(toRating)
+
   training.cache()
   validation.cache()
   test.cache()
-
-  val ranks = config.getIntList("model.params.ranks").asScala.toVector.map(_.toInt)
-  val lambdas = config.getDoubleList("model.params.lambdas").asScala.toVector.map(_.toDouble)
-  val numIters = config.getIntList("model.params.iterations").asScala.toVector.map(_.toInt)
-  val alphas = config.getDoubleList("model.params.alphas").asScala.toVector.map(_.toDouble)
   
   val directory = s"report-${DateTime.now().toString(DateTimeFormat.forPattern("yyyy-MM-dd--HH-mm-ss"))}"
-    s"mkdir $directory" !!
+  s"mkdir $directory" !!
   
   val minRatingToConsiderAsGood = config.getInt("model.min-rating-to-consider-as-good")
   val alsModelType = config.getString("model.als-model-type")
-  
-  val paramsCrossProduct = for {
-    rank <- ranks; lambda <- lambdas; numIter <- numIters; alpha <- alphas
-  } yield (rank, lambda, numIter, alpha)
 
-  type Result = (Double, MatrixFactorizationModel, (Int, Double, Int, Double), Double)
-
-  var best : (Double, MatrixFactorizationModel, (Int, Double, Int, Double), Double) = null
+  var best : Result = null
   val results = ArrayBuffer[Result]()
 
-  paramsCrossProduct.foreach {
-    case params @ (rank, lambda, numIter, alpha) => {
-      val modelDirectory = s"$directory/r$rank-l${(lambda * 100).toInt}-i$numIter-a${(alpha * 100).toInt}"
+  ModelParams.paramsCrossProduct(config.getConfig("model.params")).foreach {
+    case params : ModelParams => {
+      val modelDirectory = s"$directory/" + params.toDirName
+
       val (model, buildTime) = time {
         if (alsModelType == "explicit") {
-          ALS.train(training, rank, numIter, lambda)
+          ALS.train(training, params.rank, params.numIter, params.lambda)
         }
         else {
-          ALS.trainImplicit(training, rank, numIter, lambda, alpha)
+          val confidenceTraining = fullTraining.map(preference => toConfidence(preference, params.followerFactor))
+          ALS.trainImplicit(confidenceTraining, params.rank, params.numIter, params.lambda, params.alpha)
         }
       }
       val score = Evaluations.evaluateAndGiveAUC(new ALSPrediction(model), validation,
         minRatingToConsiderAsGood, modelDirectory, buildTime)
       unpersistModel(model)
 
-      if (best == null || best._1 < score) {
-        best = (score, model, params, buildTime)
+      if (best == null || best.score < score) {
+        best = Result(score, model, params, buildTime)
       }
 
-      results.append((score, null, params, buildTime))
+      results.append(Result(score, null, params, buildTime))
     }
   }
   
-  val (score, model, (rank, lambda, numIter, alpha), _) = best
+  val Result(score, model, params, _) = best
 
   dumpScores(results.toVector, directory + "/scores.txt")
-  logger.info(s"The best model params: rank=$rank, lambda=$lambda, numIter=$numIter, alpha=$alpha. It's ROC AUC = $score")
+  logger.info(s"The best model params: ${params.toString}. It's ROC AUC = $score")
   
   val testSetScore =  Evaluations.evaluateAndGiveAUC(new ALSPrediction(model), test,
     minRatingToConsiderAsGood, directory + "/best-on-test-set")
@@ -104,16 +101,25 @@ object ModelBuilder extends App with StrictLogging {
 
   sparkCassandraClient.saveModel(model)
   sparkCassandraClient.sparkContext.stop()
-  
+
+  private def toRating(userAndRating : UserAndRating) : Rating = {
+    Rating(userAndRating.userID, userAndRating.videoID, userAndRating.rating)
+  }
+
+  private def toConfidence(userAndRating: UserAndRating, followersFactor: Double): Rating = {
+    val confidence = userAndRating.rating + followersFactor * userAndRating.timesUpvotedByFriends
+    Rating(userAndRating.userID, userAndRating.videoID, confidence)
+  }
+
   private def unpersistModel(model: MatrixFactorizationModel): Unit = {
     model.userFeatures.unpersist()
     model.productFeatures.unpersist()
   }
 
-  private def dumpScores(scores : Vector[(Double, MatrixFactorizationModel, (Int, Double, Int, Double), Double)], filename: String) = {
-    val header = "rank,lambda,numIter,alpha,score,time\n"
+  private def dumpScores(scores : Vector[Result], filename: String) = {
+    val header = ModelParams.csvHeader + ",score,time\n"
     val csv = scores.map {
-      case (score, _, params, buildTime) => params.productIterator.toList.mkString(",") + "," + score.toString + "," + buildTime.toString
+      case Result(score, _, params, buildTime) => params.toCsv + "," + score.toString + "," + buildTime.toString
     }.mkString("\n")
 
     File(filename).writeAll(header, csv)
