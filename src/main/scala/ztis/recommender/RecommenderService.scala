@@ -11,7 +11,6 @@ class RecommenderService(mappingService : MappingService) extends StrictLogging 
   private val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("ModelBuilder"), cassandraConfig)
   private val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(cassandraConfig), Spark.sparkContext(sparkConfig))
   private val model: MatrixFactorizationModel = sparkCassandraClient.fetchModel
-  private val allUsers: Set[Int] = model.userFeatures.map(_._1).collect().toSet
 
   logger.info("Recommendation model successfully loaded.")
 
@@ -63,6 +62,6 @@ class RecommenderService(mappingService : MappingService) extends StrictLogging 
   }
 
   private def haveDataFor(userId: Option[Int]) = {
-    userId.isDefined && allUsers.contains(userId.get)
+    userId.isDefined
   }
 }
