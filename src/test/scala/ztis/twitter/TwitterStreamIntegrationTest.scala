@@ -70,7 +70,7 @@ class TwitterStreamIntegrationTest extends CassandraSpec(ConfigFactory.load("cas
     val expectedAssociations = Vector(UserVideoImplicitAssociation(1, UserOrigin.Twitter, 0, UserOrigin.Twitter, 0, VideoOrigin.YouTube))
     assert(ratings == expectedRatings)
     assert(associations == expectedAssociations)
-    verify(relationshipsFetcherProducer).queueFetchRelationshipsFor(registerFirstUser.externalUserID)
+    verify(relationshipsFetcherProducer).requestRelationshipsFor(registerFirstUser.externalUserID)
   }
 
   override def beforeAll(): Unit = {

@@ -61,7 +61,7 @@ class RelationshipFetcherIntegrationTest extends CassandraSpec(ConfigFactory.loa
     when(api.followersFor(1L)).thenReturn(Vector(TwitterUser(2, "second-twitter-user")))
 
     // when
-    producer.queueFetchRelationshipsFor(registerFirstTwitterUser.externalUserID)
+    producer.requestRelationshipsFor(registerFirstTwitterUser.externalUserID)
     Thread.sleep(10.seconds.toMillis)
 
     // then

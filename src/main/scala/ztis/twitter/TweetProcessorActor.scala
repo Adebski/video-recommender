@@ -110,7 +110,7 @@ class TweetProcessorActor(tweet: Tweet,
           val association = UserVideoImplicitAssociation(fromUserID, UserOrigin.Twitter, userID, UserOrigin.Twitter, videoID, videoOrigin)
           cassandraClient.updateImplicitAssociation(association)
         }
-        relationshipsFetcher.queueFetchRelationshipsFor(tweet.userId())
+        relationshipsFetcher.requestRelationshipsFor(tweet.userId())
       }
     } catch {
       case e: Exception => {
