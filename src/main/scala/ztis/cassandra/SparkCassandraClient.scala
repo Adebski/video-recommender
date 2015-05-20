@@ -12,8 +12,10 @@ class SparkCassandraClient(val client: CassandraClient, val sparkContext: SparkC
 
   type FeaturesRDD = RDD[(Int, Array[Double])]
 
-  private val columns = SomeColumns("user_id", "user_origin", "video_id", "video_origin", "rating")
+  private val ratingTableColumns = SomeColumns("user_id", "user_origin", "video_id", "video_origin", "rating")
 
+  private val relationshipsTableColumns = SomeColumns("user_id", "user_origin", "video_id", "video_origin", "followed_user_id", "followed_user_origin")
+  
   def userVideoRatingsRDD: RDD[UserVideoRating] = {
     sparkContext.cassandraTable(client.config.keyspace, client.config.ratingsTableName).map { row =>
       val userId = row.getInt("user_id")
@@ -79,7 +81,7 @@ class SparkCassandraClient(val client: CassandraClient, val sparkContext: SparkC
   }
 
   def saveUserVideoRatings(rdd: RDD[UserVideoRating]): RDD[UserVideoRating] = {
-    rdd.map(_.toTuple).saveToCassandra(client.config.keyspace, client.config.ratingsTableName, columns)
+    rdd.map(_.toTuple).saveToCassandra(client.config.keyspace, client.config.ratingsTableName, ratingTableColumns)
     rdd
   }
 
@@ -88,7 +90,27 @@ class SparkCassandraClient(val client: CassandraClient, val sparkContext: SparkC
     saveFeatures(model.productFeatures, client.config.keyspace, client.config.productFeaturesTableName)
   }
 
+  def updateMoviesForNewRelationships(toUserID: Int, toUserOrigin: UserOrigin, fromUserIDs: Vector[Int], fromUserOrigin: UserOrigin): Unit = {
+    val toUserVideos = sparkContext.cassandraTable(client.config.keyspace, client.config.ratingsTableName)
+      .select("video_id", "video_origin")
+      .where("user_id = ? and user_origin = ?", toUserID, toUserOrigin.toString)
+    toUserVideos.cache()
+    
+    fromUserIDs.foreach { fromUserID =>
+      updateRelationships(toUserVideos, toUserID, toUserOrigin, fromUserID, fromUserOrigin)
+    }
+  }
+  
+  private def updateRelationships(toUserVideos: RDD[CassandraRow], 
+                                  toUserID: Int, toUserOrigin: UserOrigin, fromUserID: Int, fromUserOrigin: UserOrigin): Unit = {
+    toUserVideos.map { row =>
+      val videoID = row.getInt("video_id")
+      val videoOrigin = row.getString("video_origin")
 
+      (fromUserID, fromUserOrigin.toString, videoID, videoOrigin, toUserID, toUserOrigin.toString)
+    }.saveToCassandra(client.config.keyspace, client.config.relationshipsTableName, relationshipsTableColumns)
+  }
+  
   private def saveFeatures(rdd: FeaturesRDD, keyspace: String, table: String): Unit = {
     client.dropTable(keyspace, table)
     //toVector because spark connector does not support automatic mapping of mutable types

@@ -10,14 +10,16 @@ object TweetProcessorActorSupervisor {
 
   def props(cassandraClient: CassandraClient,
             userServiceActor: ActorRef,
-            videoServiceActor: ActorRef): Props = {
-    Props(classOf[TweetProcessorActorSupervisor], cassandraClient, userServiceActor, videoServiceActor)
+            videoServiceActor: ActorRef,
+            relationshipFetcherProducer: RelationshipFetcherProducer): Props = {
+    Props(classOf[TweetProcessorActorSupervisor], cassandraClient, userServiceActor, videoServiceActor, relationshipFetcherProducer)
   }
 }
 
 class TweetProcessorActorSupervisor(cassandraClient: CassandraClient,
                                     userServiceActor: ActorRef,
-                                    videoServiceActor: ActorRef) extends Actor with ActorLogging {
+                                    videoServiceActor: ActorRef,
+                                    relationshipFetcherProducer: RelationshipFetcherProducer) extends Actor with ActorLogging {
 
   private val timeout: FiniteDuration = context.system.settings.config.getInt("tweet-processor.tweet-timeout-seconds").seconds
   
@@ -30,7 +32,7 @@ class TweetProcessorActorSupervisor(cassandraClient: CassandraClient,
 
   override def receive: Receive = {
     case tweet: Tweet => {
-      context.actorOf(TweetProcessorActor.props(tweet, timeout, cassandraClient, userServiceActor = userServiceActor, videoServiceActor = videoServiceActor))
+      context.actorOf(TweetProcessorActor.props(tweet, timeout, cassandraClient, userServiceActor = userServiceActor, videoServiceActor = videoServiceActor, relationshipFetcherProducer))
     }
   }
 }
