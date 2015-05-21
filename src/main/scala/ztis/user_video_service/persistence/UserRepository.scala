@@ -59,12 +59,11 @@ class UserRepository(graphDatabaseService: GraphDatabaseService) extends StrictL
     (_nextInternalID, ToTwitterUserRelationshipsCreated(toUserInternalID, fromUsersInternalIDs))
   }
 
-  private def createRelationshipTwitter(tuUserInternalID: java.lang.Integer, fromInternalUserID: java.lang.Integer): Unit = {
-    createRelationshipParamMap.put("fromUserInternalID", fromInternalUserID)
-    createRelationshipParamMap.put("toUserInternalID", tuUserInternalID)
-
-    val result = graphDatabaseService.execute(UserRepository.CreateFollowsRelationshipTwitterQuery, createRelationshipParamMap)
-    result.close()
+  private def createRelationshipTwitter(toUserInternalID: java.lang.Integer, fromInternalUserID: java.lang.Integer): Unit = {
+    createRelationship(UserRepository.CreateFollowsRelationshipTwitterQuery, 
+      toUserInternalID = toUserInternalID,
+      fromUserInternalID = fromInternalUserID
+    )
   }
 
   def getTwitterUserInternalID(externalUserName: String): Option[Int] = {
@@ -117,6 +116,31 @@ class UserRepository(graphDatabaseService: GraphDatabaseService) extends StrictL
 
     node
   }
+
+  def createRelationshipsToWykopUser(externalUserName: String,
+                                       fromUsers: Vector[String],
+                                       nextInternalID: Int): (Int, ToWykopUserRelationshipsCreated) = {
+    var _nextInternalID = nextInternalID
+    val toUserNode = getNodeOrNull(Indexes.WykopUserExternalUserName, externalUserName)
+    val toUserInternalID = internalID(toUserNode)
+    val fromUsersInternalIDs = fromUsers.map { externalUserName =>
+      val result = getOrCreateWykopUser(externalUserName, _nextInternalID)
+      _nextInternalID = result._1
+
+      result._2
+    }
+
+    fromUsersInternalIDs.foreach(fromUserInternalID => createRelationshipWykop(toUserInternalID, fromUserInternalID))
+
+    (_nextInternalID, ToWykopUserRelationshipsCreated(toUserInternalID, fromUsersInternalIDs))
+  }
+  
+  private def createRelationshipWykop(toUserInternalID: Int, fromUserInternalID: Int): Unit = {
+    createRelationship(UserRepository.CreateFollowsRelationshipWykopQuery, 
+      toUserInternalID = toUserInternalID, 
+      fromUserInternalID = fromUserInternalID
+    )
+  }
   
   private def fetchFollowers(index: IndexDefinition, internalUserID: Int): Vector[Int] = {
     val node = getNodeOrNull(index, internalUserID)
@@ -154,6 +178,14 @@ class UserRepository(graphDatabaseService: GraphDatabaseService) extends StrictL
   private def internalID(node: Node): Int = {
     node.getProperty(FieldNames.InternalUserID).asInstanceOf[Int]
   }
+
+  private def createRelationship(query: String, toUserInternalID: java.lang.Integer, fromUserInternalID: java.lang.Integer): Unit = {
+    createRelationshipParamMap.put("fromUserInternalID", fromUserInternalID)
+    createRelationshipParamMap.put("toUserInternalID", toUserInternalID)
+
+    val result = graphDatabaseService.execute(query, createRelationshipParamMap)
+    result.close()
+  }
 }
 
 object UserRepository {
@@ -161,6 +193,15 @@ object UserRepository {
     s"""
        |MATCH (fromUser: ${Labels.TwitterUser} { ${FieldNames.InternalUserID}: {fromUserInternalID}}),
        |(toUser: ${Labels.TwitterUser} { ${FieldNames.InternalUserID}: {toUserInternalID}})
+       |CREATE UNIQUE (fromUser)-[:${Relationships.FromFollowerToFollowedUser}]->(toUser)  
+     """.stripMargin
+
+  
+  
+  private val CreateFollowsRelationshipWykopQuery =
+    s"""
+       |MATCH (fromUser: ${Labels.WykopUser} { ${FieldNames.InternalUserID}: {fromUserInternalID}}),
+       |(toUser: ${Labels.WykopUser} { ${FieldNames.InternalUserID}: {toUserInternalID}})
        |CREATE UNIQUE (fromUser)-[:${Relationships.FromFollowerToFollowedUser}]->(toUser)  
      """.stripMargin
 }

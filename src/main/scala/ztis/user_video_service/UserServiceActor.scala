@@ -19,6 +19,10 @@ object UserServiceActor {
   
   case class ToTwitterUserRelationshipsCreated(internalUserID: Int, fromUsers: Vector[Int])
   
+  case class CreateRelationshipsToWykopUser(externalUserID: String, fromUsers: Vector[String])
+  
+  case class ToWykopUserRelationshipsCreated(internalUserID: Int, fromUsers: Vector[Int])
+  
   case class TwitterUserRegistered(internalUserID: Int, followedBy: Vector[Int], request: RegisterTwitterUser)
 
   case class WykopUserRegistered(internalUserID: Int, followedBy: Vector[Int], request: RegisterWykopUser)
