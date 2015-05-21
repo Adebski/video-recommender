@@ -5,6 +5,7 @@ import org.neo4j.graphdb.{Direction, GraphDatabaseService, Node}
 import ztis.twitter.TwitterUser
 import ztis.user_video_service.FieldNames
 import ztis.user_video_service.UserServiceActor._
+
 import scala.collection.JavaConverters._
 
 /**
@@ -118,8 +119,8 @@ class UserRepository(graphDatabaseService: GraphDatabaseService) extends StrictL
   }
 
   def createRelationshipsToWykopUser(externalUserName: String,
-                                       fromUsers: Vector[String],
-                                       nextInternalID: Int): (Int, ToWykopUserRelationshipsCreated) = {
+                                     fromUsers: Vector[String],
+                                     nextInternalID: Int): (Int, ToWykopUserRelationshipsCreated) = {
     var _nextInternalID = nextInternalID
     val toUserNode = getNodeOrNull(Indexes.WykopUserExternalUserName, externalUserName)
     val toUserInternalID = internalID(toUserNode)

@@ -6,20 +6,23 @@ import akka.routing.FromConfig
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import ztis.cassandra.{CassandraClient, CassandraConfiguration}
+import ztis.relationships.KafkaRelationshipFetcherProducer
 
 object WykopStreamApp extends App with StrictLogging {
   val config = ConfigFactory.load("wykop")
+  val fetcherConfig = ConfigFactory.load("relationship-fetcher")
   val system = ActorSystem("ClusterSystem", config)
   val api = new WykopAPI(config)
   val cassandraConfig = CassandraConfiguration(config)
   val cassandraClient = new CassandraClient(cassandraConfig)
-
+  val producer = new KafkaRelationshipFetcherProducer(fetcherConfig)
+  
   val cluster = Cluster(system).registerOnMemberUp {
     logger.info("Creating WykopScrapperActor")
     val userServiceRouter = createRouter("user-service-router")
     val videoServiceRouter = createRouter("video-service-router")
     val wykopScrapperActor =
-      system.actorOf(WykopScrapperActor.props(api, cassandraClient, userServiceActor = userServiceRouter, videoServiceActor = videoServiceRouter), "wykop-scrapper-actor")
+      system.actorOf(WykopScrapperActor.props(api, cassandraClient, userServiceActor = userServiceRouter, videoServiceActor = videoServiceRouter, producer), "wykop-scrapper-actor")
   }
   
 

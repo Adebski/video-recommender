@@ -3,10 +3,11 @@ package ztis.wykop
 import akka.actor._
 import akka.event.LoggingReceive
 import ztis.cassandra.CassandraClient
+import ztis.relationships.RelationshipFetcherProducer
 import ztis.user_video_service.UserServiceActor.{RegisterWykopUser, WykopUserRegistered}
 import ztis.user_video_service.VideoServiceActor.{RegisterVideos, VideosRegistered}
-import ztis.wykop.VideoEntryProcessorActor.{Timeout, ProcessEntry}
-import ztis.{UserVideoRating, UserOrigin}
+import ztis.wykop.VideoEntryProcessorActor.{ProcessEntry, Timeout}
+import ztis.{UserOrigin, UserVideoRating}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -15,13 +16,14 @@ object VideoEntryProcessorActor {
   private case class ProcessEntry(videoEntry: VideoEntry)
 
   private case object Timeout
-  
+
   def props(entry: VideoEntry,
             timeout: FiniteDuration,
-            cassandraClient: CassandraClient, 
-            userServiceActor: ActorRef, 
-            videoServiceActor: ActorRef): Props = {
-    Props(classOf[VideoEntryProcessorActor], entry, timeout, cassandraClient, userServiceActor, videoServiceActor)
+            cassandraClient: CassandraClient,
+            userServiceActor: ActorRef,
+            videoServiceActor: ActorRef,
+            relationshipFetcherProducer: RelationshipFetcherProducer): Props = {
+    Props(classOf[VideoEntryProcessorActor], entry, timeout, cassandraClient, userServiceActor, videoServiceActor, relationshipFetcherProducer)
   }
 }
 
@@ -29,7 +31,8 @@ class VideoEntryProcessorActor(entry: VideoEntry,
                                timeout: FiniteDuration,
                                cassandraClient: CassandraClient,
                                userServiceActor: ActorRef,
-                               videoServiceActor: ActorRef) extends Actor with ActorLogging {
+                               videoServiceActor: ActorRef,
+                               relationshipFetcherProducer: RelationshipFetcherProducer) extends Actor with ActorLogging {
 
   self ! ProcessEntry(entry)
 
@@ -38,7 +41,7 @@ class VideoEntryProcessorActor(entry: VideoEntry,
   private var videoResponse: Option[VideosRegistered] = None
 
   private var timeoutMessage: Option[Cancellable] = None
-  
+
   override def receive: Receive = LoggingReceive {
     case ProcessEntry(entry) => {
       userServiceActor ! RegisterWykopUser(entry.userName)
@@ -75,6 +78,7 @@ class VideoEntryProcessorActor(entry: VideoEntry,
       log.info(s"Persisting $toPersist")
 
       cassandraClient.updateRating(toPersist, userResponse.get.followedBy)
+      relationshipFetcherProducer.requestRelationshipsForWykopUser(entry.userName)
     } catch {
       case e: Exception => {
         throw new IllegalArgumentException(s"Could not persist $userResponse and $videoResponse", e)

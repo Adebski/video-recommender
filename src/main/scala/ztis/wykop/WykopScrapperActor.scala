@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.event.LoggingReceive
 import ztis.VideoOrigin
 import ztis.cassandra.CassandraClient
+import ztis.relationships.{RelationshipFetcherProducer, KafkaRelationshipFetcherProducer}
 import ztis.user_video_service.VideoServiceActor.Video
 import ztis.wykop.WykopScrapperActor.ScrapWykop
 
@@ -16,20 +17,22 @@ object WykopScrapperActor {
   def props(api: WykopAPI,
             cassandraClient: CassandraClient,
             userServiceActor: ActorRef,
-            videoServiceActor: ActorRef): Props = {
-    Props(classOf[WykopScrapperActor], api, cassandraClient, userServiceActor, videoServiceActor)
+            videoServiceActor: ActorRef,
+            relationshipFetcherProducer: RelationshipFetcherProducer): Props = {
+    Props(classOf[WykopScrapperActor], api, cassandraClient, userServiceActor, videoServiceActor, relationshipFetcherProducer)
   }
 }
 
 class WykopScrapperActor(api: WykopAPI,
                          cassandraClient: CassandraClient,
                          userServiceActor: ActorRef,
-                         videoServiceActor: ActorRef) extends Actor with ActorLogging {
+                         videoServiceActor: ActorRef,
+                         relationshipFetcherProducer: RelationshipFetcherProducer) extends Actor with ActorLogging {
 
   private val durationBetweenScrappings = context.system.settings.config.getInt("wykop.seconds-between-requests").seconds
 
   private val timeoutDuration = context.system.settings.config.getInt("wykop.entry-timeout-seconds").seconds
-  
+
   self ! ScrapWykop
 
   override def receive: Receive = LoggingReceive {
@@ -59,11 +62,12 @@ class WykopScrapperActor(api: WykopAPI,
   private def entryProcessorProps(entry: VideoEntry): Props = {
     VideoEntryProcessorActor.props(entry,
       timeoutDuration,
-      cassandraClient, 
-      userServiceActor = userServiceActor, 
-      videoServiceActor = videoServiceActor)
+      cassandraClient,
+      userServiceActor = userServiceActor,
+      videoServiceActor = videoServiceActor,
+      relationshipFetcherProducer)
   }
-  
+
   private def scheduleNextScrapping(): Unit = {
     import context.dispatcher
     context.system.scheduler.scheduleOnce(durationBetweenScrappings, self, ScrapWykop)

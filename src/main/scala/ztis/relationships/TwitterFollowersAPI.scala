@@ -1,7 +1,8 @@
-package ztis.twitter
+package ztis.relationships
 
 import twitter4j.api.FriendsFollowersResources
 import twitter4j.{PagableResponseList, User}
+import ztis.twitter.TwitterUser
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -9,7 +10,7 @@ import scala.collection.mutable.ArrayBuffer
  * Simple adapter for Twitter4J because of problematic PagableResponseList class - hard to test
  * @param twitterAPI
  */
-class FollowersAPI(twitterAPI: FriendsFollowersResources) {
+class TwitterFollowersAPI(twitterAPI: FriendsFollowersResources) {
   private val initialCursor = -1L
 
   def followersFor(userID: Long): Vector[TwitterUser] = {

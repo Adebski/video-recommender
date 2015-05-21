@@ -5,15 +5,16 @@ import akka.cluster.Cluster
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import ztis.cassandra.{CassandraClient, CassandraConfiguration}
+import ztis.relationships.KafkaRelationshipFetcherProducer
 import ztis.util.RouterSupport
 
 object TweetProcessorApp extends App with StrictLogging with RouterSupport {
   val config = ConfigFactory.load("tweet-processor")
-  val relationshipFetcherConfig = ConfigFactory.load("twitter-relationship-fetcher")
+  val relationshipFetcherConfig = ConfigFactory.load("relationship-fetcher")
   val system = ActorSystem("ClusterSystem", config)
   val cassandraConfig = CassandraConfiguration(config)
   val cassandraClient = new CassandraClient(cassandraConfig)
-  val relationshipFetcherProducer = new RelationshipFetcherProducer(relationshipFetcherConfig)
+  val relationshipFetcherProducer = new KafkaRelationshipFetcherProducer(relationshipFetcherConfig)
 
   val cluster = Cluster(system).registerOnMemberUp {
     logger.info("Creating TweetProcessor")

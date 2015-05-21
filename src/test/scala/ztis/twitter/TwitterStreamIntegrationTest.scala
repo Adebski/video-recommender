@@ -11,6 +11,7 @@ import org.scalatest.mock.MockitoSugar
 import twitter4j.Status
 import ztis._
 import ztis.cassandra.{CassandraSpec, UserVideoRatingRepository}
+import ztis.relationships.RelationshipFetcherProducer
 import ztis.user_video_service.UserServiceActor.{CreateRelationshipsToTwitterUser, RegisterTwitterUser, TwitterUserRegistered}
 import ztis.user_video_service.persistence._
 import ztis.user_video_service.{UserServiceActor, VideoServiceActor}
@@ -70,7 +71,7 @@ class TwitterStreamIntegrationTest extends CassandraSpec(ConfigFactory.load("cas
     val expectedAssociations = Vector(UserVideoImplicitAssociation(1, UserOrigin.Twitter, 0, UserOrigin.Twitter, 0, VideoOrigin.YouTube))
     assert(ratings == expectedRatings)
     assert(associations == expectedAssociations)
-    verify(relationshipsFetcherProducer).requestRelationshipsFor(registerFirstUser.externalUserID)
+    verify(relationshipsFetcherProducer).requestRelationshipsForTwitterUser(registerFirstUser.externalUserID)
   }
 
   override def beforeAll(): Unit = {

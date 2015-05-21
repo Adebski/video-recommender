@@ -63,6 +63,9 @@ class UserServiceActor(graphDatabaseService: GraphDatabaseService,
     case request: CreateRelationshipsToTwitterUser => {
       handleInTryCatch(request, handleTwitterRelationshipsRequest)  
     }
+    case request: CreateRelationshipsToWykopUser => {
+      handleInTryCatch(request, handleWykopRelationshipsRequest)
+    }
   }
 
   private def handleInTryCatch[IN, OUT](request: IN, processFunction: IN => OUT): Unit = {
@@ -98,6 +101,16 @@ class UserServiceActor(graphDatabaseService: GraphDatabaseService,
     tempNextInternalID = result._1
     metadataRepository.updateNextUserInternalID(tempNextInternalID)
     
+    result._2
+  }
+
+  private def handleWykopRelationshipsRequest(request: CreateRelationshipsToWykopUser): ToWykopUserRelationshipsCreated = {
+    val result: (Int, ToWykopUserRelationshipsCreated) =
+      userRepository.createRelationshipsToWykopUser(request.externalUserID, request.fromUsers, tempNextInternalID)
+
+    tempNextInternalID = result._1
+    metadataRepository.updateNextUserInternalID(tempNextInternalID)
+
     result._2
   }
   
