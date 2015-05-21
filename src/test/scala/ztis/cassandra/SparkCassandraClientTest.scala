@@ -1,6 +1,7 @@
 package ztis.cassandra
 
 import com.typesafe.config.ConfigFactory
+import org.scalatest.BeforeAndAfterEach
 import ztis._
 
 class SparkCassandraClientTest extends CassandraSpec(ConfigFactory.load("cassandra.conf")) {
@@ -11,26 +12,17 @@ class SparkCassandraClientTest extends CassandraSpec(ConfigFactory.load("cassand
   
   "SparkCassandraClient" should "retrieve UserVideoFullInformation" in {
     // given
-    // movie rated by first user
     val firstRating = UserVideoRating(1, UserOrigin.Twitter, 1, VideoOrigin.YouTube, 1)
-
-    // movie rated by second user followed by first user
     val secondRating = UserVideoRating(2, UserOrigin.Twitter, 2, VideoOrigin.Vimeo, 1)
-    val firstAssociation = UserVideoImplicitAssociation(1, UserOrigin.Twitter, 2, UserOrigin.Twitter, 2, VideoOrigin.Vimeo)
-    
-    // movie rated by first and third user, first user follows third user
-    val thirdRating = UserVideoRating(1, UserOrigin.Twitter, 3, VideoOrigin.YouTube, 1)
-    val fourthRating = UserVideoRating(3, UserOrigin.Twitter, 3, VideoOrigin.YouTube, 1)
-    val secondAssociation = UserVideoImplicitAssociation(1, UserOrigin.Twitter, 3, UserOrigin.Twitter, 3, VideoOrigin.YouTube)
+    val thirdRating = UserVideoRating(3, UserOrigin.Twitter, 3, VideoOrigin.YouTube, 1)
+    val fourthRating = UserVideoRating(1, UserOrigin.Twitter, 3, VideoOrigin.YouTube, 1)
     
     cassandraClient.updateRating(firstRating)
-    
-    cassandraClient.updateRating(secondRating)
-    cassandraClient.updateImplicitAssociation(firstAssociation)
-    
-    cassandraClient.updateRating(thirdRating)
+    // first user follows second user
+    cassandraClient.updateRating(secondRating, Vector(1))
+    // first user follows third user
+    cassandraClient.updateRating(thirdRating, Vector(1))
     cassandraClient.updateRating(fourthRating)
-    cassandraClient.updateImplicitAssociation(secondAssociation)
     
     // when
     val userVideoRatings = sparkCassandraClient.userVideoRatingsRDD.collect().toSet
@@ -43,9 +35,12 @@ class SparkCassandraClientTest extends CassandraSpec(ConfigFactory.load("cassand
       UserVideoFullInformation(2, UserOrigin.Twitter, 2, VideoOrigin.Vimeo, 1, 0),
       UserVideoFullInformation(3, UserOrigin.Twitter, 3, VideoOrigin.YouTube, 1, 0)
     )
+    val expectedAssociations = Set(UserVideoImplicitAssociation(1, UserOrigin.Twitter, 2, UserOrigin.Twitter, 2, VideoOrigin.Vimeo),
+      UserVideoImplicitAssociation(1, UserOrigin.Twitter, 3, UserOrigin.Twitter, 3, VideoOrigin.YouTube)
+    )
     
-    assert(userVideoRatings == Set(firstRating, secondRating, thirdRating, fourthRating))
-    assert(userAssociations == Set(firstAssociation, secondAssociation))
+    assert(userVideoRatings == Set(firstRating, secondRating, fourthRating, thirdRating))
+    assert(userAssociations == expectedAssociations)
     assert(userVideoFullInformation == expectedUserVideoFullInformation)
   } 
   

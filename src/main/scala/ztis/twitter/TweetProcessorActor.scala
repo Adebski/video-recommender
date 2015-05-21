@@ -104,12 +104,8 @@ class TweetProcessorActor(tweet: Tweet,
           UserVideoRating(userID, UserOrigin.Twitter, videoID, videoOrigin, 1)
 
         log.info(s"Persisting $toPersist")
-        cassandraClient.updateRating(toPersist)
+        cassandraClient.updateRating(toPersist, userResponse.get.followedBy)
         
-        userResponse.get.followedBy.foreach { fromUserID => 
-          val association = UserVideoImplicitAssociation(fromUserID, UserOrigin.Twitter, userID, UserOrigin.Twitter, videoID, videoOrigin)
-          cassandraClient.updateImplicitAssociation(association)
-        }
         relationshipsFetcher.requestRelationshipsFor(tweet.userId())
       }
     } catch {
