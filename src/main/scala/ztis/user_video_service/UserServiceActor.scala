@@ -21,7 +21,7 @@ object UserServiceActor {
   
   case class TwitterUserRegistered(internalUserID: Int, followedBy: Vector[Int], request: RegisterTwitterUser)
 
-  case class WykopUserRegistered(internalUserID: Int, request: RegisterWykopUser)
+  case class WykopUserRegistered(internalUserID: Int, followedBy: Vector[Int], request: RegisterWykopUser)
 
   def props(graphDatabaseService: GraphDatabaseService,
             userRepository: UserRepository,

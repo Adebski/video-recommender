@@ -74,7 +74,7 @@ class VideoEntryProcessorActor(entry: VideoEntry,
         UserVideoRating(userID, UserOrigin.Wykop, videoID, videoOrigin, 1)
       log.info(s"Persisting $toPersist")
 
-      cassandraClient.updateRating(toPersist)
+      cassandraClient.updateRating(toPersist, userResponse.get.followedBy)
     } catch {
       case e: Exception => {
         throw new IllegalArgumentException(s"Could not persist $userResponse and $videoResponse", e)
