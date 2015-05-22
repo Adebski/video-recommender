@@ -6,10 +6,11 @@ import akka.actor._
 import akka.event.LoggingReceive
 import com.twitter.Extractor
 import ztis.cassandra.CassandraClient
+import ztis.relationships.RelationshipFetcherProducer
 import ztis.twitter.TweetProcessorActor.{ProcessTweet, Timeout}
 import ztis.user_video_service.UserServiceActor.{RegisterTwitterUser, TwitterUserRegistered}
 import ztis.user_video_service.VideoServiceActor.{RegisterVideos, Video, VideosRegistered}
-import ztis.{UserVideoImplicitAssociation, UserVideoRating, UserOrigin, VideoOrigin}
+import ztis.{UserOrigin, UserVideoRating, VideoOrigin}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.FiniteDuration
@@ -42,7 +43,7 @@ class TweetProcessorActor(tweet: Tweet,
                           timeout: FiniteDuration,
                           cassandraClient: CassandraClient,
                           userServiceActor: ActorRef,
-                          videoServiceActor: ActorRef, 
+                          videoServiceActor: ActorRef,
                           relationshipsFetcher: RelationshipFetcherProducer) extends Actor with ActorLogging {
 
   self ! TweetProcessorActor.ProcessTweet(tweet)
@@ -104,13 +105,9 @@ class TweetProcessorActor(tweet: Tweet,
           UserVideoRating(userID, UserOrigin.Twitter, videoID, videoOrigin, 1)
 
         log.info(s"Persisting $toPersist")
-        cassandraClient.updateRating(toPersist)
-        
-        userResponse.get.followedBy.foreach { fromUserID => 
-          val association = UserVideoImplicitAssociation(fromUserID, UserOrigin.Twitter, userID, UserOrigin.Twitter, videoID, videoOrigin)
-          cassandraClient.updateImplicitAssociation(association)
-        }
-        relationshipsFetcher.requestRelationshipsFor(tweet.userId())
+        cassandraClient.updateRating(toPersist, userResponse.get.followedBy)
+
+        relationshipsFetcher.requestRelationshipsForTwitterUser(tweet.userId())
       }
     } catch {
       case e: Exception => {

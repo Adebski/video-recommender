@@ -1,6 +1,6 @@
 package ztis
 
-import java.util.concurrent.Executors
+import java.util.concurrent.{ExecutorService, Executors}
 
 import com.twitter.chill.KryoPool
 import com.typesafe.config.Config
@@ -11,7 +11,9 @@ import kafka.serializer.DefaultDecoder
 class KafkaConsumer(config: Config) extends KafkaComponent {
 
   private val consumer = Consumer.create(consumerConfig(config))
-
+  
+  private var _executor: Option[ExecutorService] = None
+  
   def subscribe[T](numberOfThreads: Int, topic: String, clazz: Class[T], onMessage: T => Unit) = {
     logger.info(s"Subscribing on $numberOfThreads thread to $topic")
     val filterSpec = new Whitelist(topic)
@@ -22,14 +24,13 @@ class KafkaConsumer(config: Config) extends KafkaComponent {
     streams.foreach { stream =>
       executor.submit(new KafkaConsumerTask(stream, kryo, clazz, onMessage))
     }
-
-    sys.addShutdownHook {
-      executor.shutdownNow()
-    }
+    
+    _executor = Some(executor)
   }
 
-  sys.addShutdownHook {
-    consumer.shutdown()
+  def shutdown(): Unit = {
+    consumer.shutdown()  
+    _executor.foreach(_.shutdown())
   }
 }
 

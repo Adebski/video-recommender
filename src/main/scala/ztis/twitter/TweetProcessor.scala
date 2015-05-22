@@ -18,5 +18,9 @@ class TweetProcessor(system: ActorSystem,
   def submit(tweet: Tweet): Unit = {
     tweetProcessorActor ! tweet
   }
+  
+  sys.addShutdownHook {
+    consumer.shutdown()
+  }
 }
 

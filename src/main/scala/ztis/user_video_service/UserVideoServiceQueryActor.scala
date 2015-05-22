@@ -34,8 +34,8 @@ class UserVideoServiceQueryActor(graphDatabaseService: GraphDatabaseService,
     case request: UserInternalIDRequest => {
       try {
         unitOfWork { () =>
-          val twitterUserID: Option[Int] = request.twitterUserName.flatMap(userRepository.getTwitterUser(_))
-          val wykopUserID: Option[Int] = request.wykopUserName.flatMap(userRepository.getWykopUser(_))
+          val twitterUserID: Option[Int] = request.twitterUserName.flatMap(userRepository.getTwitterUserInternalID(_))
+          val wykopUserID: Option[Int] = request.wykopUserName.flatMap(userRepository.getWykopUserInternalID(_))
           sender() ! UserInternalIDResponse(internalTwitterUserID = twitterUserID, internalWykopUserID = wykopUserID)
         }  
       } catch {

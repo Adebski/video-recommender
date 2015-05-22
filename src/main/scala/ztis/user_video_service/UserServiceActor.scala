@@ -19,9 +19,13 @@ object UserServiceActor {
   
   case class ToTwitterUserRelationshipsCreated(internalUserID: Int, fromUsers: Vector[Int])
   
+  case class CreateRelationshipsToWykopUser(externalUserID: String, fromUsers: Vector[String])
+  
+  case class ToWykopUserRelationshipsCreated(internalUserID: Int, fromUsers: Vector[Int])
+  
   case class TwitterUserRegistered(internalUserID: Int, followedBy: Vector[Int], request: RegisterTwitterUser)
 
-  case class WykopUserRegistered(internalUserID: Int, request: RegisterWykopUser)
+  case class WykopUserRegistered(internalUserID: Int, followedBy: Vector[Int], request: RegisterWykopUser)
 
   def props(graphDatabaseService: GraphDatabaseService,
             userRepository: UserRepository,
@@ -59,6 +63,9 @@ class UserServiceActor(graphDatabaseService: GraphDatabaseService,
     case request: CreateRelationshipsToTwitterUser => {
       handleInTryCatch(request, handleTwitterRelationshipsRequest)  
     }
+    case request: CreateRelationshipsToWykopUser => {
+      handleInTryCatch(request, handleWykopRelationshipsRequest)
+    }
   }
 
   private def handleInTryCatch[IN, OUT](request: IN, processFunction: IN => OUT): Unit = {
@@ -94,6 +101,16 @@ class UserServiceActor(graphDatabaseService: GraphDatabaseService,
     tempNextInternalID = result._1
     metadataRepository.updateNextUserInternalID(tempNextInternalID)
     
+    result._2
+  }
+
+  private def handleWykopRelationshipsRequest(request: CreateRelationshipsToWykopUser): ToWykopUserRelationshipsCreated = {
+    val result: (Int, ToWykopUserRelationshipsCreated) =
+      userRepository.createRelationshipsToWykopUser(request.externalUserID, request.fromUsers, tempNextInternalID)
+
+    tempNextInternalID = result._1
+    metadataRepository.updateNextUserInternalID(tempNextInternalID)
+
     result._2
   }
   
