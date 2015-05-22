@@ -24,12 +24,18 @@ class KafkaRelationshipFetcherConsumer(config: Config, relationshipFetcherActor:
   }
   
   private def subscribeToTwitterUsers(): Unit = {
-    twitterConsumer.subscribe(relationshipFetcherConfig.twitterUsersThreads, relationshipFetcherConfig.twitterUsersTopic, classOf[java.lang.Long], onTwitterUser)
+    val threads = relationshipFetcherConfig.twitterUsersThreads
+    val topic = relationshipFetcherConfig.twitterUsersTopic
+    
+    twitterConsumer.subscribe(threads, topic, classOf[java.lang.Long], onTwitterUser)
 
   }
 
   private def subscribeToWykopUsers(): Unit = {
-    wykopConsumer.subscribe(relationshipFetcherConfig.wykopUsersThreads, relationshipFetcherConfig.wykopUsersTopic, classOf[String], onWykopUser)
+    val threads = relationshipFetcherConfig.wykopUsersThreads
+    val topic = relationshipFetcherConfig.wykopUsersTopic
+    
+    wykopConsumer.subscribe(threads, topic, classOf[String], onWykopUser)
   }
 
   private def onTwitterUser(id: java.lang.Long): Unit = {
