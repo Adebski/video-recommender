@@ -12,7 +12,7 @@
     <timestamp key="bySecond" datePattern="yyyy-MM-dd-HH-mm-ss"/>
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>${outout-file}-${bySecond}.log</file>
+        <file>${output-file}-${bySecond}.log</file>
 
         <encoder>
             <pattern>%date %level [%thread] %logger{10} [%file:%line] %msg%n</pattern>
