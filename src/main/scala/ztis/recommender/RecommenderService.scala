@@ -8,8 +8,9 @@ import ztis.cassandra.{CassandraClient, CassandraConfiguration, SparkCassandraCl
 
 class RecommenderService(mappingService : MappingService) extends StrictLogging {
   private val cassandraConfig = CassandraConfiguration(ConfigFactory.load("model"))
-  private val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("ModelBuilder"), cassandraConfig)
-  private val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(cassandraConfig), Spark.sparkContext(sparkConfig))
+  private val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("ModelBuilder", uiPort = 4041), cassandraConfig)
+  private val sparkCassandraClient = 
+    new SparkCassandraClient(new CassandraClient(cassandraConfig), Spark.sparkContext(sparkConfig))
   private val model: MatrixFactorizationModel = sparkCassandraClient.fetchModel
 
   logger.info("Recommendation model successfully loaded.")

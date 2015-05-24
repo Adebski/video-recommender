@@ -9,7 +9,7 @@ object TwitterStreamApp extends App with StrictLogging {
   try {
     val config = ConfigFactory.load("twitter-stream")
     val topic = config.getString("twitter-stream.topic")
-    val ssc = Spark.streamingContext(conf = Spark.baseConfiguration("twitter-stream"))
+    val ssc = Spark.streamingContext(conf = Spark.baseConfiguration("twitter-stream", uiPort = 4043))
     val tweets = TwitterUtils.createStream(ssc, None, List("t co"))
 
     TwitterSparkTransformations.pushToKafka(tweets, topic)

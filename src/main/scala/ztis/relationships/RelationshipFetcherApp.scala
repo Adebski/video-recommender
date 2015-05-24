@@ -23,7 +23,7 @@ object RelationshipFetcherApp extends App with StrictLogging with RouterSupport 
   val cassandraConfig = CassandraConfiguration(relationshipFetcherConfig)
   val cassandraClient = new CassandraClient(cassandraConfig)
 
-  val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("RelationshipFetcher"), cassandraConfig)
+  val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("RelationshipFetcher", uiPort = 4042), cassandraConfig)
   val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(cassandraConfig), Spark.sparkContext(sparkConfig))
 
   val cluster = Cluster(system).registerOnMemberUp {
