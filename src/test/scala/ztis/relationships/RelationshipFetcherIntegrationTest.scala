@@ -41,9 +41,12 @@ class RelationshipFetcherIntegrationTest extends CassandraSpec(ConfigFactory.loa
     // given
     val userServiceActor = system.actorOf(UserServiceActor.props(graphDb, userRepository, metadataRepository), "user-service-actor")
     val videoServiceActor = system.actorOf(VideoServiceActor.props(graphDb, videoRepository, metadataRepository), "video-service-actor")
-    val fetcherActor = system.actorOf(RelationshipFetcherActor.props(twitterAPI, wykopAPI, userServiceActor, sparkCassandraClient), "relationship-fetcher")
+    val twitterFetcherActor = system.actorOf(TwitterRelationshipFetcherActor.props(twitterAPI, userServiceActor, sparkCassandraClient), "twitter-relationship-fetcher")
+    val wykopFetcherActor = system.actorOf(WykopRelationshipFetcherActor.props(wykopAPI, userServiceActor, sparkCassandraClient), "wykop-relationship-fetcher")
     val producer = new KafkaRelationshipFetcherProducer(fetcherConfig)
-    val consumer = new KafkaRelationshipFetcherConsumer(fetcherConfig, fetcherActor)
+    val consumer = new KafkaRelationshipFetcherConsumer(fetcherConfig, 
+      twitterRelationshipFetcher = twitterFetcherActor,
+      wykopRelationshipFetcher = wykopFetcherActor)
     consumer.subscribe()
     
     val registerFirstTwitterUser = RegisterTwitterUser("twitter-user", 1)
@@ -78,7 +81,8 @@ class RelationshipFetcherIntegrationTest extends CassandraSpec(ConfigFactory.loa
     cassandraClient.updateRating(twitterUserVideoRating)
     cassandraClient.updateRating(wykopUserVideoRating)
 
-    when(twitterAPI.followersFor(1L)).thenReturn(Vector(TwitterUser(2, "second-twitter-user")))
+    when(twitterAPI.followersFor(1L, FollowersBuilder(TwitterFollowersAPI.InitialCursor)))
+      .thenReturn(FollowersBuilder(TwitterFollowersAPI.FinalCursorValue, Vector(TwitterUser(2, "second-twitter-user")), false)) 
     when(wykopAPI.usersFollowingUser("wykop-user")).thenReturn(Vector("user-following-wykop-user"))
     
     // when

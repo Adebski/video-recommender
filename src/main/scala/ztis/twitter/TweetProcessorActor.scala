@@ -2,6 +2,7 @@ package ztis.twitter
 
 import java.io.IOException
 
+import akka.actor.Status.Failure
 import akka.actor._
 import akka.event.LoggingReceive
 import com.twitter.Extractor
@@ -85,6 +86,14 @@ class TweetProcessorActor(tweet: Tweet,
       if (bothResponsesReceived) {
         processResponses()
       }
+    }
+    case Timeout => {
+      log.warning(s"Timeout encountered for $tweet, user response was $userResponse, video response was $videoResponse")
+      context.stop(self)
+    }
+    case Failure(e) => {
+      log.error(e, s"Error received from ${sender()} $tweet, user response was $userResponse, video response was $videoResponse")
+      context.stop(self)
     }
   }
 

@@ -46,7 +46,9 @@ class UserRepository(graphDatabaseService: GraphDatabaseService) extends StrictL
                                        fromUsers: Vector[TwitterUser],
                                        nextInternalID: Int): (Int, ToTwitterUserRelationshipsCreated) = {
     var _nextInternalID = nextInternalID
-    val toUserNode = getNodeOrNull(Indexes.TwitterUserExternalUserID, externalUserID)
+    val toUserNode = Option(getNodeOrNull(Indexes.TwitterUserExternalUserID, externalUserID)).getOrElse {
+      throw new IllegalArgumentException(s"No twitter user with id $externalUserID")
+    }
     val toUserInternalID = internalID(toUserNode)
     val fromUsersInternalIDs = fromUsers.map { user =>
       val result = getOrCreateTwitterUser(user.userID, user.userName, _nextInternalID)
@@ -122,7 +124,9 @@ class UserRepository(graphDatabaseService: GraphDatabaseService) extends StrictL
                                      fromUsers: Vector[String],
                                      nextInternalID: Int): (Int, ToWykopUserRelationshipsCreated) = {
     var _nextInternalID = nextInternalID
-    val toUserNode = getNodeOrNull(Indexes.WykopUserExternalUserName, externalUserName)
+    val toUserNode = Option(getNodeOrNull(Indexes.WykopUserExternalUserName, externalUserName)).getOrElse {
+      throw new IllegalArgumentException(s"No Wykop user with userName $externalUserName")
+    }
     val toUserInternalID = internalID(toUserNode)
     val fromUsersInternalIDs = fromUsers.map { externalUserName =>
       val result = getOrCreateWykopUser(externalUserName, _nextInternalID)

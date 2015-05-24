@@ -3,14 +3,12 @@ package ztis.relationships
 import akka.actor.ActorSystem
 import akka.cluster.Cluster
 import com.typesafe.config.ConfigFactory
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import twitter4j.TwitterFactory
 import twitter4j.auth.OAuthAuthorization
 import twitter4j.conf.ConfigurationBuilder
-import ztis.{Initializer, Spark}
 import ztis.cassandra.{CassandraClient, CassandraConfiguration, SparkCassandraClient}
-import ztis.util.RouterSupport
 import ztis.wykop.WykopAPI
+import ztis.{Initializer, Spark}
 
 class RelationshipFetcherInitializer extends Initializer {
   override def initialize(): Unit = {
@@ -30,8 +28,11 @@ class RelationshipFetcherInitializer extends Initializer {
     val cluster = Cluster(system).registerOnMemberUp {
       logger.info("Creating relationship fetcher")
       val userServiceRouter = createUserServiceRouter(system)
-      val fetcherActor = system.actorOf(RelationshipFetcherActor.props(followersAPI, wykopAPI, userServiceRouter, sparkCassandraClient))
-      val relationshipFetcherConsumer = new KafkaRelationshipFetcherConsumer(relationshipFetcherConfig, fetcherActor)
+      val twitterFetcherActor = system.actorOf(TwitterRelationshipFetcherActor.props(followersAPI, userServiceRouter, sparkCassandraClient), "twitter-fetcher-actor")
+      val wykopFetcherActor = system.actorOf(WykopRelationshipFetcherActor.props(wykopAPI, userServiceRouter, sparkCassandraClient), "wykop-fetcher-actor")
+      val relationshipFetcherConsumer = new KafkaRelationshipFetcherConsumer(relationshipFetcherConfig,
+        twitterRelationshipFetcher = twitterFetcherActor,
+        wykopRelationshipFetcher = wykopFetcherActor)
       relationshipFetcherConsumer.subscribe()
     }
   }
