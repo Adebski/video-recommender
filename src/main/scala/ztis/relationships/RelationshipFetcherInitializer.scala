@@ -3,7 +3,7 @@ package ztis.relationships
 import akka.actor.ActorSystem
 import akka.cluster.Cluster
 import com.typesafe.config.ConfigFactory
-import twitter4j.TwitterFactory
+import twitter4j.ZTISTwitterFactory
 import twitter4j.auth.OAuthAuthorization
 import twitter4j.conf.ConfigurationBuilder
 import ztis.cassandra.{CassandraClient, CassandraConfiguration, SparkCassandraClient}
@@ -14,8 +14,8 @@ class RelationshipFetcherInitializer extends Initializer {
   override def initialize(): Unit = {
     val relationshipFetcherConfig = ConfigFactory.load("relationship-fetcher")
     val twitterAuth = new OAuthAuthorization(new ConfigurationBuilder().setUseSSL(true).build())
-    val internalTwitterAPI = (new TwitterFactory).getInstance(twitterAuth)
-    val followersAPI = new TwitterFollowersAPI(internalTwitterAPI)
+    val ztisInternalTwitterAPI = (new ZTISTwitterFactory).getInstance(twitterAuth)
+    val followersAPI = new TwitterFollowersAPI(ztisInternalTwitterAPI)
     val wykopAPI = new WykopAPI(relationshipFetcherConfig)
 
     val system = ActorSystem("ClusterSystem", relationshipFetcherConfig)
