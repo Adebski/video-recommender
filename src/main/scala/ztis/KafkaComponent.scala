@@ -1,6 +1,5 @@
 package ztis
 
-import java.util
 import java.util.Properties
 
 import com.twitter.chill.{KryoInstantiator, KryoPool}
@@ -33,7 +32,7 @@ trait KafkaComponent extends StrictLogging {
   }
 
   private def configToMap(config: Config): java.util.Map[String, Object] = {
-    val result = new util.HashMap[String, Object]()
+    val result = new java.util.HashMap[String, Object]()
 
     config.entrySet.asScala.foreach { entry =>
       result.put(entry.getKey, entry.getValue.unwrapped.toString)

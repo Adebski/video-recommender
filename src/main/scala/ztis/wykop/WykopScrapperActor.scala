@@ -52,8 +52,12 @@ class WykopScrapperActor(api: WykopAPI,
           }
         }
 
-        scheduleNextScrapping()
+        scheduleNextScrapping(durationBetweenScrappings)
       } catch {
+        case e: WykopAPIRateExceededException => {
+          log.info(s"Waiting for ${e.waitFor} due to rate limitations")
+          scheduleNextScrapping(e.waitFor)
+        }
         case e: Exception => log.error(e, "Problems during wykop scrapping")
       }
     }
@@ -68,8 +72,8 @@ class WykopScrapperActor(api: WykopAPI,
       relationshipFetcherProducer)
   }
 
-  private def scheduleNextScrapping(): Unit = {
+  private def scheduleNextScrapping(inDuration: FiniteDuration): Unit = {
     import context.dispatcher
-    context.system.scheduler.scheduleOnce(durationBetweenScrappings, self, ScrapWykop)
+    context.system.scheduler.scheduleOnce(inDuration, self, ScrapWykop)
   }
 }

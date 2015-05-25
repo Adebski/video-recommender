@@ -73,3 +73,7 @@ parallelExecution in Test := false
 net.virtualvoid.sbt.graph.Plugin.graphSettings
 
 Revolver.settings
+
+fork in run := true
+
+javaOptions in run ++= Seq("-Xms1G", "-Xmx2G")

@@ -4,28 +4,28 @@ import java.io.File
 import java.net.URL
 
 import com.typesafe.config.{Config, ConfigFactory}
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import ztis.cassandra.{CassandraConfiguration, CassandraClient, SparkCassandraClient}
-import ztis.{VideoOrigin, Spark, UserVideoRating, UserOrigin}
+import ztis._
+import ztis.cassandra.{CassandraClient, CassandraConfiguration, SparkCassandraClient}
 
 import scala.language.postfixOps
 import scala.sys.process._
 
-object MovieLensDataLoader extends App with StrictLogging {
+class MovieLensDataLoaderInitializer extends Initializer {
+  override def initialize(): Unit = {
+    try {
+      val config = ConfigFactory.load("testdata")
+      val cassandraConfig = CassandraConfiguration(config)
+      val unaryScale = config.getBoolean("testdata.unary-scale")
+      val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("MovieLensLoader"), cassandraConfig)
+      val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(cassandraConfig), Spark.sparkContext(sparkConfig))
 
-  try {
-    val config = ConfigFactory.load("testdata")
-    val cassandraConfig = CassandraConfiguration(config)
-    val unaryScale = config.getBoolean("testdata.unary-scale")
-    val sparkConfig = SparkCassandraClient.setCassandraConfig(Spark.baseConfiguration("MovieLensLoader"), cassandraConfig)
-    val sparkCassandraClient = new SparkCassandraClient(new CassandraClient(cassandraConfig), Spark.sparkContext(sparkConfig))
-
-    downloadDataset(config)
-    insertMovielensDataToCassandra(sparkCassandraClient, unaryScale)
-    logger.info("Data inserted into database")
-    sparkCassandraClient.stop()
-  } catch {
-    case e: Exception => logger.error("Error during loading test data", e)
+      downloadDataset(config)
+      insertMovielensDataToCassandra(sparkCassandraClient, unaryScale)
+      logger.info("Data inserted into database")
+      sparkCassandraClient.stop()
+    } catch {
+      case e: Exception => logger.error("Error during loading test data", e)
+    }
   }
 
   private def insertMovielensDataToCassandra(sparkCassandraClient: SparkCassandraClient, unaryScale: Boolean): Unit = {
