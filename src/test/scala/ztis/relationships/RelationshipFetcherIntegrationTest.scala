@@ -83,7 +83,8 @@ class RelationshipFetcherIntegrationTest extends CassandraSpec(ConfigFactory.loa
 
     when(twitterAPI.followersFor(1L, FollowersBuilder(TwitterFollowersAPI.InitialCursor)))
       .thenReturn(FollowersBuilder(TwitterFollowersAPI.FinalCursorValue, Vector(TwitterUser(2, "second-twitter-user")), false)) 
-    when(wykopAPI.usersFollowingUser("wykop-user")).thenReturn(Vector("user-following-wykop-user"))
+    when(wykopAPI.usersFollowingUser("wykop-user", FollowersBuilder[String](WykopAPI.InitialPage)))
+      .thenReturn(FollowersBuilder[String](WykopAPI.FinalPage, Vector("user-following-wykop-user"), false))
     
     // when
     producer.requestRelationshipsForTwitterUser(registerFirstTwitterUser.externalUserID)

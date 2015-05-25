@@ -26,7 +26,7 @@ trait RelationshipFetcher extends Actor with ActorLogging with Stash {
     }
   }
 
-  def scheduleMessageAndStashCurrent(message: AnyRef, seconds: Int): Unit = {
+  def scheduleMessageAndStashCurrent(message: AnyRef, seconds: Long): Unit = {
     import context.dispatcher
     stash()
     Some(context.system.scheduler.scheduleOnce(seconds.seconds, self, message))

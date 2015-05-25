@@ -46,7 +46,7 @@ class TwitterFollowersAPI(twitterAPI: ZTISTwitter) extends StrictLogging {
           val partialResult = FollowersBuilder(page, builder.gatheredFollowers ++ buffer, partialResult = true)
           logger.warn(s"Exceeded rate limit for user $userID, for now gathered ${partialResult.gatheredFollowers.size}, message = ${e.getErrorMessage}, must retry in ${e.getRateLimitStatus.getSecondsUntilReset} seconds")
 
-          throw FollowersFetchingLimitException(partialResult, e)
+          throw TwitterFollowersFetchingLimitException(partialResult, e)
         } else {
           throw e
         }

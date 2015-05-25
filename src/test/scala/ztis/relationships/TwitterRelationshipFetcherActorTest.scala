@@ -1,19 +1,17 @@
 package ztis.relationships
 
-import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import com.typesafe.config.ConfigFactory
+import akka.testkit.TestProbe
 import org.mockito.Mockito._
-import org.scalatest.FlatSpecLike
-import org.scalatest.mock.MockitoSugar
 import twitter4j.{RateLimitStatus, TwitterException}
+import ztis.AkkaSpec
 import ztis.cassandra.SparkCassandraClient
 import ztis.relationships.TwitterRelationshipFetcherActor.FetchRelationshipsTwitter
 import ztis.twitter.TwitterUser
 import ztis.user_video_service.UserServiceActor.CreateRelationshipsToTwitterUser
+
 import scala.concurrent.duration._
 
-class TwitterRelationshipFetcherActorTest extends TestKit(ActorSystem("test-actor-system", ConfigFactory.load("akka"))) with FlatSpecLike with MockitoSugar with ImplicitSender {
+class TwitterRelationshipFetcherActorTest extends AkkaSpec {
 
   "TwitterRelationshipFetcherActor" should "handle limits in Twitter API" in {
     // given
@@ -31,7 +29,7 @@ class TwitterRelationshipFetcherActorTest extends TestKit(ActorSystem("test-acto
     val secondUserFinalBuilderTwitterUsers = Vector(TwitterUser(100, "second-user-follower1"), TwitterUser(200, "second-user-follower2"))
     val secondUserFinalBuilder =
       FollowersBuilder(TwitterFollowersAPI.FinalCursorValue, secondUserFinalBuilderTwitterUsers, partialResult = false)
-    val rateExceededException = FollowersFetchingLimitException(partialBuilder, twitterException)
+    val rateExceededException = TwitterFollowersFetchingLimitException(partialBuilder, twitterException)
 
     when(rateLimitStatus.getSecondsUntilReset).thenReturn(waitSeconds)
     when(twitterException.getRateLimitStatus).thenReturn(rateLimitStatus)
@@ -45,7 +43,7 @@ class TwitterRelationshipFetcherActorTest extends TestKit(ActorSystem("test-acto
 
     // then
     Thread.sleep(waitSeconds.seconds.toMillis)
-    
+
     userServiceActor.expectMsg(CreateRelationshipsToTwitterUser(1L, finalBuilderTwitterUsers))
     userServiceActor.expectMsg(CreateRelationshipsToTwitterUser(2L, secondUserFinalBuilderTwitterUsers))
   }

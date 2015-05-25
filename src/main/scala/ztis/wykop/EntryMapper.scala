@@ -48,4 +48,21 @@ object EntryMapper {
 
     userName
   }
+  
+  def toError(json: String): Option[WykopAPIError] = {
+    val nodes = mapper.readTree(json)
+    val errorObject = nodes.get("error")
+    var result: Option[WykopAPIError] = None
+    
+    if (errorObject != null) {
+      val code = errorObject.get("code")
+      val message = errorObject.get("message").asText()
+      
+      if (code != null && code.isInt && message != null) {
+        result = Some(WykopAPIError(code.asInt(), message))
+      }
+    }
+    
+    result
+  }
 }

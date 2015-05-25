@@ -41,7 +41,7 @@ class TwitterRelationshipFetcherActor(twitterAPI: TwitterFollowersAPI,
           followersBuilder = None
         }
       } catch {
-        case e: FollowersFetchingLimitException => {
+        case e: TwitterFollowersFetchingLimitException => {
           twitterRateExceeded = true
           followersBuilder = Some(e.partialBuilder)
           scheduleMessageAndStashCurrent(TwitterRateReset, e.reason.getRateLimitStatus.getSecondsUntilReset)
