@@ -42,16 +42,23 @@ class WykopAPI(config: Config) extends StrictLogging {
   }
 
   def mainPageEntries(page: Int = 1): Vector[Entry] = {
-    downloadEntries(mainPageURL(1))
+    val url = mainPageURL(page)
+    val digest = calculateDigest(url)
+    
+    downloadEntries(url, digest)
   }
 
   def upcomingPageEntries(page: Int = 1): Vector[Entry] = {
-    downloadEntries(upcomingPageURL(page))
+    val url = mainPageURL(page)
+    val digest = calculateDigest(url)
+    
+    downloadEntries(url, digest)
   }
 
-  private def downloadEntries(url: String): Vector[Entry] = {
+  private def downloadEntries(url: String, digest: String): Vector[Entry] = {
     val response = scalaj.http.Http(url)
       .option(HttpOptions.followRedirects(true))
+      .header("apisign", digest)
       .method("GET")
       .asString
     val body = response.body
