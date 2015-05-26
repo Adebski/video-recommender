@@ -20,8 +20,9 @@ object EntryMapper {
   private def toEntry(node: JsonNode): Entry = {
     val author = node.get("author").asText()
     val link = URI.create(node.get("source_url").asText())
+    val wykopLinkID = node.get("id").asText()
     
-    Entry(author, link)
+    Entry(author, link, wykopLinkID)
   }
   
   def toEntries(json: String): Vector[Entry] = {

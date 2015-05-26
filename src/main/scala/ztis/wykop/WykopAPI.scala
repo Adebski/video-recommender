@@ -49,7 +49,7 @@ class WykopAPI(config: Config) extends StrictLogging {
   }
 
   def upcomingPageEntries(page: Int = 1): Vector[Entry] = {
-    val url = mainPageURL(page)
+    val url = upcomingPageURL(page)
     val digest = calculateDigest(url)
     
     downloadEntries(url, digest)

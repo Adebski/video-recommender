@@ -2,6 +2,7 @@ package ztis.wykop
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.event.LoggingReceive
+import com.google.common.cache.{Cache, CacheBuilder}
 import ztis.VideoOrigin
 import ztis.cassandra.CassandraClient
 import ztis.relationships.{RelationshipFetcherProducer, KafkaRelationshipFetcherProducer}
@@ -33,23 +34,37 @@ class WykopScrapperActor(api: WykopAPI,
 
   private val timeoutDuration = context.system.settings.config.getInt("wykop.entry-timeout-seconds").seconds
 
+  private val cache: Cache[String, String] = CacheBuilder.newBuilder().maximumSize(1000).build[String, String]()
+  
   self ! ScrapWykop
 
   override def receive: Receive = LoggingReceive {
     case ScrapWykop => {
-      try {
-        val entries = api.mainPageEntries(1) ++ api.upcomingPageEntries(1)
-        val videoEntries = entries.flatMap { entry =>
+      try {                 
+        val mainPageEntries = api.mainPageEntries(1)
+        val upcomingPageEntries = api.upcomingPageEntries(1)
+        val entries = mainPageEntries ++ upcomingPageEntries
+        val entriesNotInCache = entries.filter { entry =>
+          if (cache.getIfPresent(entry.wykopLinkID) == null) {
+            cache.put(entry.wykopLinkID, "")
+            true
+          } else {
+            false
+          }
+        }
+        val videoEntries = entriesNotInCache.flatMap { entry =>
           val videoOrigin = VideoOrigin.recognize(entry.link.getHost)
 
           videoOrigin.map(origin => VideoEntry(entry.author, Video(origin, entry.link)))
         }
 
         if (videoEntries.nonEmpty) {
-          log.info(s"Extracted video entries $videoEntries from $entries")
+          log.info(s"Extracted video entries $videoEntries from $entriesNotInCache that were not in cache")
           videoEntries.foreach { entry =>
             context.actorOf(entryProcessorProps(entry))
           }
+        } else {
+          log.info("All downloaded entries are present in cache")
         }
 
         scheduleNextScrapping(durationBetweenScrappings)
