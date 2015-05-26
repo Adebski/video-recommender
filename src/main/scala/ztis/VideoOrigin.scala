@@ -31,6 +31,10 @@ object VideoOrigin {
     Origins.filter(_.matches(host)).headOption
   }
   
+  def isKnownHost(host: String): Boolean = {
+    Origins.exists(_.matches(host))
+  }
+  
   def fromString(name: String): VideoOrigin = {
     name.toLowerCase match {
       case "youtube" => YouTube

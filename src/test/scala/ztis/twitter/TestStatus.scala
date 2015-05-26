@@ -4,7 +4,7 @@ import java.util.Date
 
 import twitter4j._
 
-class TestStatus(user: TestUser, text: String, val isRetweet: Boolean) extends Status {
+class TestStatus(user: TestUser, urlEntites: Array[URLEntity], val isRetweet: Boolean) extends Status {
   override def getPlace: Place = ???
 
   override def isFavorited: Boolean = ???
@@ -35,7 +35,7 @@ class TestStatus(user: TestUser, text: String, val isRetweet: Boolean) extends S
 
   override def getSource: String = ???
 
-  override def getText: String = text
+  override def getText: String = ???
 
   override def getInReplyToStatusId: Long = ???
 
@@ -47,7 +47,7 @@ class TestStatus(user: TestUser, text: String, val isRetweet: Boolean) extends S
 
   override def getHashtagEntities: Array[HashtagEntity] = ???
 
-  override def getURLEntities: Array[URLEntity] = ???
+  override def getURLEntities: Array[URLEntity] = urlEntites
 
   override def getMediaEntities: Array[MediaEntity] = ???
 

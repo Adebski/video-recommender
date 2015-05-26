@@ -20,9 +20,9 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 class TwitterStreamIntegrationTest extends CassandraSpec(ConfigFactory.load("cassandra.conf")) with TestKitBase with MockitoSugar with StrictLogging with ImplicitSender {
-
-  val twitterLink = "http://t.co/H27Ftvjoxe"
+  
   val youtubeLink = "https://www.youtube.com/watch?v=PBm8H6NFsGM"
+  val googleLink = "www.google.com"
   lazy val tweetProcessorConfig = ConfigFactory.load("tweet-processor.conf")
   val twitterStreamConf = ConfigFactory.load("twitter-stream.conf")
   val testTopic = twitterStreamConf.getString("twitter-stream.topic")
@@ -58,7 +58,8 @@ class TwitterStreamIntegrationTest extends CassandraSpec(ConfigFactory.load("cas
     val dstream = ssc.queueStream(queue)
 
     val user = new TestUser(registerFirstUser.externalUserName, registerFirstUser.externalUserID)
-    val statuses = List(new TestStatus(user, s"text text $twitterLink text", true))
+    val firstTestStatus = new TestStatus(user, Array(new TestURLEntity((youtubeLink)), new TestURLEntity(googleLink)), true)
+    val statuses = List(firstTestStatus)
     queue += ssc.sparkContext.makeRDD(statuses)
     TwitterSparkTransformations.pushToKafka(dstream, testTopic)
 
