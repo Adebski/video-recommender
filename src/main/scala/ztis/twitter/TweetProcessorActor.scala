@@ -1,6 +1,7 @@
 package ztis.twitter
 
 import java.io.IOException
+import java.net.URI
 
 import akka.actor.Status.Failure
 import akka.actor._
@@ -24,11 +25,6 @@ object TweetProcessorActor {
   private case object Timeout
 
   private val extractor = new Extractor
-
-  private def extractLinks(tweet: Tweet): Vector[String] = {
-    val links = extractor.extractURLs(tweet.text())
-    links.asScala.toVector
-  }
 
   def props(tweet: Tweet,
             timeout: FiniteDuration,
@@ -57,21 +53,16 @@ class TweetProcessorActor(tweet: Tweet,
 
   override def receive: Receive = LoggingReceive {
     case ProcessTweet(tweet) => {
-      val links = TweetProcessorActor.extractLinks(tweet)
-      val resolvedLinks = links.flatMap(followLink).map(java.net.URI.create(_))
-      val videos = resolvedLinks.flatMap { link =>
-        val origin: Option[VideoOrigin] = VideoOrigin.recognize(link.getHost)
-        origin.map(Video(_, link))
+      val links = tweet.videoLinks()
+      val videos = links.flatMap { link =>
+        val uri = URI.create(link)
+        val origin: Option[VideoOrigin] = VideoOrigin.recognize(uri.getHost)
+        origin.map(Video(_, uri))
       }
-
-      if (videos.nonEmpty) {
-        log.info(s"Extracted videos $videos from $resolvedLinks that were resolved from $links")
-        userServiceActor ! RegisterTwitterUser(tweet.userName(), tweet.userId())
-        videoServiceActor ! RegisterVideos(videos)
-        scheduleTimeout()
-      } else {
-        context.stop(self)
-      }
+      log.info(s"Extracted videos $videos from $tweet")
+      userServiceActor ! RegisterTwitterUser(tweet.userName(), tweet.userId())
+      videoServiceActor ! RegisterVideos(videos.toVector)
+      scheduleTimeout()
     }
     case response: TwitterUserRegistered => {
       userResponse = Some(response)
@@ -113,7 +104,7 @@ class TweetProcessorActor(tweet: Tweet,
         val toPersist =
           UserVideoRating(userID, UserOrigin.Twitter, videoID, videoOrigin, 1)
 
-        log.info(s"Persisting $toPersist")
+        log.info(s"Persisting $toPersist, created based on $tweet")
         cassandraClient.updateRating(toPersist, userResponse.get.followedBy)
 
         relationshipsFetcher.requestRelationshipsForTwitterUser(tweet.userId())
@@ -125,21 +116,6 @@ class TweetProcessorActor(tweet: Tweet,
     } finally {
       timeoutMessage.foreach(_.cancel())
       context.stop(self)
-    }
-  }
-
-  private def followLink(link: String): Option[String] = {
-    try {
-      scalaj.http.Http(link)
-        .option(HttpOptions.followRedirects(true))
-        .method("GET")
-        .asBytes.location
-    } catch {
-      case e: IOException => {
-        throw new IllegalArgumentException(s"Could not resolve link $link", e)
-      }
-    } finally {
-      timeoutMessage.foreach(_.cancel())
     }
   }
 
