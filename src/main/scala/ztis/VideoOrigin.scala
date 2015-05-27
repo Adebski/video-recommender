@@ -61,8 +61,8 @@ object VideoOrigin {
     Origins.find(_.matches(host).isDefined)
   }
   
-  def isKnownHost(host: String): Boolean = {
-    Origins.exists(_.matches(host).isDefined)
+  def normalizeVideoUrl(host: String): Option[String] = {
+    recognize(host).map(_.matches(host).get)
   }
   
   def fromString(name: String): VideoOrigin = {
