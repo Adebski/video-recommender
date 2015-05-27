@@ -1,0 +1,29 @@
+---
+- name: Check if Oracle Java is intalled
+  command: dpkg -s oracle-java8-installer
+  register: java_check
+  ignore_errors: True
+  sudo: yes
+
+- name: add PPA repository with Oracle Java 
+  apt_repository: repo='ppa:webupd8team/java' state=present
+  when: java_check|failed
+  sudo: yes
+
+- name: Automatically select the Oracle License
+  shell: echo debconf shared/accepted-oracle-license-v1-1 select true | sudo debconf-set-selections
+  when: java_check|failed
+  sudo: yes
+
+- name: Update package list
+  apt: update_cache=yes
+  when: java_check|failed
+  sudo: yes
+
+- name: install Oracje Java 8 from PPA repository and set it as default Java
+  apt: pkg={{ item }} state=present
+  when: java_check|failed
+  with_items:
+    - oracle-java8-installer
+    - oracle-java8-set-default
+  sudo: yes

@@ -1,0 +1,20 @@
+# Tasks for installing basic software that is required for every node
+
+- include: java.yml
+
+- name: Install git
+  apt: pkg=git state=present
+  sudo: yes
+
+- name: Copy SBT package
+  copy: src=sbt-0.13.5.deb dest=/tmp/sbt.deb 
+  sudo: yes
+
+- name: Install SBT
+  shell: dpkg --skip-same-version -i /tmp/sbt.deb
+  sudo: yes
+
+- name: Add hostname to /etc/hosts (for JMX/RMI)
+  lineinfile: dest=/etc/hosts regexp='^127\.0\.0\.1 localhost' line='127.0.0.1 localhost {{ansible_hostname}}' backrefs=yes state=present
+  sudo: yes
+  tags: jmx
