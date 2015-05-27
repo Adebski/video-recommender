@@ -17,8 +17,7 @@ object TwitterSparkTransformations extends StrictLogging {
     logger.debug(tweet.toString)
     val links = tweet.getURLEntities
     val videoURIs =
-      links.map(entity => VideoOrigin.normalizeVideoUrl(entity.getExpandedURL))
-           .flatten
+      links.flatMap(entity => VideoOrigin.normalizeVideoUrl(entity.getExpandedURL))
            .map(videoUrl => URI.create(videoUrl))
 
     if (videoURIs.nonEmpty) {

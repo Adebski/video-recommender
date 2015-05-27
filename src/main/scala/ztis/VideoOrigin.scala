@@ -1,7 +1,7 @@
 package ztis
 
 sealed trait VideoOrigin {
-  def matches(host: String): Option[String]
+  def matches(url: String): Option[String]
 }
 
 object VideoOrigin {
@@ -11,8 +11,8 @@ object VideoOrigin {
     val vimeoRgx = """(?:https?://)?(?:www.)?(?:player.)?vimeo.com/(?:[a-z]*/)*([0-9]{6,11})[?]?.*"""
                     .replaceAll("\\s*#.*\n", "").replace(" ","").r
 
-    override def matches(host: String): Option[String] = {
-      host match {
+    override def matches(url: String): Option[String] = {
+      url match {
         case vimeoRgx(a) => Some("http://vimeo.com/" + a)
         case _ => None
       }
@@ -43,8 +43,8 @@ object VideoOrigin {
                        |[?=&+%\w.-]*       # Consume any URL (query) remainder.
                        |""".stripMargin.replaceAll("\\s*#.*\n", "").replace(" ","").r
 
-    override def matches(host: String): Option[String] = {
-      host match {
+    override def matches(url: String): Option[String] = {
+      url match {
         case youtubeRgx(a) => Some("http://www.youtube.com/watch?v=" + a)
         case _ => None
       }
@@ -52,17 +52,17 @@ object VideoOrigin {
   }
   
   case object MovieLens extends VideoOrigin {
-    override def matches(host: String): Option[String] = None
+    override def matches(url: String): Option[String] = None
   }
   
   val Origins = Set(Vimeo, YouTube, MovieLens)
   
-  def recognize(host: String): Option[VideoOrigin] = {
-    Origins.find(_.matches(host).isDefined)
+  def recognize(url: String): Option[VideoOrigin] = {
+    Origins.find(_.matches(url).isDefined)
   }
   
-  def normalizeVideoUrl(host: String): Option[String] = {
-    recognize(host).map(_.matches(host).get)
+  def normalizeVideoUrl(url: String): Option[String] = {
+    Origins.flatMap(_.matches(url)).headOption
   }
   
   def fromString(name: String): VideoOrigin = {
