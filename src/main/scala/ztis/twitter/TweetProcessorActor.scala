@@ -56,7 +56,7 @@ class TweetProcessorActor(tweet: Tweet,
       val links = tweet.videoLinks()
       val videos = links.flatMap { link =>
         val uri = URI.create(link)
-        val origin: Option[VideoOrigin] = VideoOrigin.recognize(uri.getHost)
+        val origin: Option[VideoOrigin] = VideoOrigin.recognize(link)
         origin.map(Video(_, uri))
       }
       log.info(s"Extracted videos $videos from $tweet")

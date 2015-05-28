@@ -11,7 +11,9 @@ import ztis.user_video_service.persistence.{Metadata, MetadataRepository, UnitOf
 
 object VideoServiceActor {
 
-  case class Video(origin: VideoOrigin, uri: java.net.URI)
+  case class Video(origin: VideoOrigin, uri: java.net.URI) {
+    override def toString = s"Video{origin=${origin.getClass.getName},url=${uri.toString}}"
+  }
   
   case class RegisterVideos(videos: Vector[Video])
 
