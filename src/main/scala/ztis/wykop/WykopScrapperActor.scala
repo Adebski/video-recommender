@@ -53,7 +53,7 @@ class WykopScrapperActor(api: WykopAPI,
           }
         }
         val videoEntries = entriesNotInCache.flatMap { entry =>
-          val videoOrigin = VideoOrigin.recognize(entry.link.getHost)
+          val videoOrigin = VideoOrigin.recognize(entry.link.toString)
 
           videoOrigin.map(origin => VideoEntry(entry.author, Video(origin, entry.link)))
         }
