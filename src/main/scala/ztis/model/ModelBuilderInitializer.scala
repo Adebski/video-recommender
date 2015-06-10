@@ -77,7 +77,8 @@ class ModelBuilderInitializer extends Initializer {
             ALS.train(training, params.rank, params.numIter, params.lambda)
           }
           else {
-            val confidenceTraining = fullTraining.map(preference => toConfidence(preference, params.followerFactor))
+            val factor = params.followerFactor
+            val confidenceTraining = fullTraining.map(preference => toConfidence(preference, factor))
             ALS.trainImplicit(confidenceTraining, params.rank, params.numIter, params.lambda, params.alpha)
           }
         }
