@@ -17,9 +17,20 @@ import scala.sys.process._
 
 object ModelBuilderInitializer {
   case class Result(score: Double, model: MatrixFactorizationModel, params: ModelParams, time: Double)
+
+  def toRating(userVideoFullInformation : UserVideoFullInformation) : Rating = {
+    Rating(userVideoFullInformation.userID, userVideoFullInformation.videoID, userVideoFullInformation.rating)
+  }
+
+  def toConfidence(userVideoFullInformation: UserVideoFullInformation, followersFactor: Double): Rating = {
+    val confidence = userVideoFullInformation.rating + followersFactor * userVideoFullInformation.timesRatedByFollowedUsers
+    Rating(userVideoFullInformation.userID, userVideoFullInformation.videoID, confidence)
+  }
 }
 
 class ModelBuilderInitializer extends Initializer {
+  import ModelBuilderInitializer._
+
   override def initialize(): Unit = {
     val config = ConfigFactory.load("model")
     val cassandraConfig = CassandraConfiguration(config)
@@ -104,15 +115,6 @@ class ModelBuilderInitializer extends Initializer {
 
     sparkCassandraClient.saveModel(model)
     sparkCassandraClient.stop()
-  }
-
-  private def toRating(userVideoFullInformation : UserVideoFullInformation) : Rating = {
-    Rating(userVideoFullInformation.userID, userVideoFullInformation.videoID, userVideoFullInformation.rating)
-  }
-
-  private def toConfidence(userVideoFullInformation: UserVideoFullInformation, followersFactor: Double): Rating = {
-    val confidence = userVideoFullInformation.rating + followersFactor * userVideoFullInformation.timesRatedByFollowedUsers
-    Rating(userVideoFullInformation.userID, userVideoFullInformation.videoID, confidence)
   }
 
   private def unpersistModel(model: MatrixFactorizationModel): Unit = {

@@ -11,8 +11,7 @@ import ztis.wykop.WykopStreamInitializer
 
 object GlobalInitializers {
   val initializers = Map[String, () => Initializer](
-    "csv-dump" -> (() => new CsvDumper
-      ),
+    "csv-dump" -> (() => new CsvDumper),
     "wykop-stream" -> (() => new WykopStreamInitializer),
     "model-builder" -> (() => new ModelBuilderInitializer),
     "recommender" -> (() => new RecommenderInitializer),
