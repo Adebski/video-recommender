@@ -17,6 +17,8 @@ object VideoOrigin {
         case _ => None
       }
     }
+
+    override def toString: String = "vimeo"
   }
   
   case object YouTube extends VideoOrigin {
@@ -49,10 +51,14 @@ object VideoOrigin {
         case _ => None
       }
     }
+
+    override def toString: String = "youtube"
   }
   
   case object MovieLens extends VideoOrigin {
     override def matches(url: String): Option[String] = None
+
+    override def toString: String = "movielens"
   }
   
   val Origins = Set(Vimeo, YouTube, MovieLens)

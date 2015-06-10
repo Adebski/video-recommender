@@ -1,5 +1,6 @@
 package ztis
 
+import ztis.dump.CsvDumper
 import ztis.model.ModelBuilderInitializer
 import ztis.recommender.RecommenderInitializer
 import ztis.relationships.RelationshipFetcherInitializer
@@ -10,6 +11,8 @@ import ztis.wykop.WykopStreamInitializer
 
 object GlobalInitializers {
   val initializers = Map[String, () => Initializer](
+    "csv-dump" -> (() => new CsvDumper
+      ),
     "wykop-stream" -> (() => new WykopStreamInitializer),
     "model-builder" -> (() => new ModelBuilderInitializer),
     "recommender" -> (() => new RecommenderInitializer),

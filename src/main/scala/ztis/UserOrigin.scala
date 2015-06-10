@@ -3,11 +3,17 @@ package ztis
 sealed trait UserOrigin
 
 object UserOrigin {
-  case object Twitter extends UserOrigin 
+  case object Twitter extends UserOrigin {
+    override def toString: String = "twitter"
+  }
   
-  case object MovieLens extends UserOrigin 
+  case object MovieLens extends UserOrigin {
+    override def toString: String = "movielens"
+  }
   
-  case object Wykop extends UserOrigin 
+  case object Wykop extends UserOrigin {
+    override def toString: String = "wykop"
+  }
   
   def fromString(name: String): UserOrigin = {
     name.toLowerCase match {
