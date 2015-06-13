@@ -87,7 +87,7 @@ trait RecommenderPort extends HttpService {
 
   private def toXml(video: Video) = {
     <li>
-      <a href={ "http://" + video.url }>{video.url}</a>
+      <a href={ video.url }>{video.url}</a>
     </li>
   }
 
